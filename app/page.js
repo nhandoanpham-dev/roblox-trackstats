@@ -30,8 +30,8 @@ export default function Home() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black text-amber-400 tracking-wide uppercase">TrackStats Live Dashboard</h1>
-          <p className="text-xs text-slate-400">Nhập Key để theo dõi danh sách tài khoản theo thời gian thực</p>
+          <h1 className="text-3xl font-black text-amber-400 tracking-wide uppercase">AOTWING UDUMXBOT</h1>
+          <p className="text-xs text-slate-400">Theo Dõi Trạng Thái Tài Khoản</p>
         </div>
 
         {/* Input Key */}
