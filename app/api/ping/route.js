@@ -1,54 +1,50 @@
 import { NextResponse } from 'next/server';
 
-if (!global.accountStore) {
-  global.accountStore = new Map();
+// Khởi tạo bộ nhớ lưu trữ tạm thời trên Server
+if (!global.accountDataStore) {
+  global.accountDataStore = {};
 }
 
+// POST: Roblox gửi dữ liệu lên
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { key, username, userId, level, beli, fragments, fruit, placeId, jobId } = body;
+    const { key, userId, ...data } = body;
 
-    if (!key || !username || !userId) {
-      return NextResponse.json({ error: 'Thiếu tham số' }, { status: 400 });
+    if (!key || !userId) {
+      return NextResponse.json({ success: false, error: 'Thiếu Key hoặc UserId' }, { status: 400 });
     }
 
-    const accountData = {
-      username,
+    const cleanKey = key.trim();
+
+    if (!global.accountDataStore[cleanKey]) {
+      global.accountDataStore[cleanKey] = {};
+    }
+
+    global.accountDataStore[cleanKey][userId] = {
       userId,
-      level: level || 1,
-      beli: beli || 0,
-      fragments: fragments || 0,
-      fruit: fruit || 'Không xác định',
-      placeId: placeId || 0,
-      jobId: jobId || '',
+      ...data,
       lastPing: Date.now(),
     };
 
-    if (!global.accountStore.has(key)) {
-      global.accountStore.set(key, new Map());
-    }
-    
-    global.accountStore.get(key).set(userId, accountData);
-
     return NextResponse.json({ success: true });
   } catch (err) {
-    return NextResponse.json({ error: 'Lỗi hệ thống' }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
+// GET: Web lấy dữ liệu về hiển thị
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get('key');
 
   if (!key) {
-    return NextResponse.json({ error: 'Cần nhập Key' }, { status: 400 });
-  }
-
-  const userMap = global.accountStore.get(key);
-  if (!userMap) {
     return NextResponse.json({ accounts: [] });
   }
 
-  return NextResponse.json({ accounts: Array.from(userMap.values()) });
+  const cleanKey = key.trim();
+  const userMap = global.accountDataStore?.[cleanKey] || {};
+  const accounts = Object.values(userMap);
+
+  return NextResponse.json({ accounts });
 }
