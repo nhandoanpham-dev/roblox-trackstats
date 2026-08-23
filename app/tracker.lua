@@ -1,5 +1,5 @@
 -- ===================================================
--- TRACKSTATS AUTO PINGER WITH GUI MENU
+-- TRACKSTATS ADVANCED PINGER WITH FULL INVENTORY SCAN
 -- ===================================================
 
 local HttpService = game:GetService("HttpService")
@@ -10,74 +10,60 @@ local LocalPlayer = Players.LocalPlayer
 local VERCEL_API_URL = "https://aotwing-dusky.vercel.app/api/ping"
 local PING_INTERVAL = 15
 
--- 1. TẠO GIAO DIỆN MENU NHẬP KEY
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local Title = Instance.new("TextLabel")
-local KeyInput = Instance.new("TextBox")
-local SubmitBtn = Instance.new("TextButton")
-
-ScreenGui.Name = "TrackStatsKeyUI"
-ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
-
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 23, 42)
-MainFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
-MainFrame.Size = UDim2.new(0, 300, 0, 160)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local FrameCorner = Instance.new("UICorner")
-FrameCorner.CornerRadius = UDim.new(0, 12)
-FrameCorner.Parent = MainFrame
-
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 0, 0, 10)
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "TRACKSTATS - NHẬP KEY"
-Title.TextColor3 = Color3.fromRGB(245, 158, 11)
-Title.TextSize = 14
-
-KeyInput.Parent = MainFrame
-KeyInput.BackgroundColor3 = Color3.fromRGB(30, 41, 59)
-KeyInput.Position = UDim2.new(0.1, 0, 0.35, 0)
-KeyInput.Size = UDim2.new(0.8, 0, 0, 35)
-KeyInput.Font = Enum.Font.Gotham
-KeyInput.PlaceholderText = "Dán Key từ Web vào đây..."
-KeyInput.Text = ""
-KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeyInput.TextSize = 12
-
-local InputCorner = Instance.new("UICorner")
-InputCorner.CornerRadius = UDim.new(0, 8)
-InputCorner.Parent = KeyInput
-
-SubmitBtn.Parent = MainFrame
-SubmitBtn.BackgroundColor3 = Color3.fromRGB(245, 158, 11)
-SubmitBtn.Position = UDim2.new(0.1, 0, 0.68, 0)
-SubmitBtn.Size = UDim2.new(0.8, 0, 0, 35)
-SubmitBtn.Font = Enum.Font.GothamBold
-SubmitBtn.Text = "XÁC NHẬN & BẮT ĐẦU"
-SubmitBtn.TextColor3 = Color3.fromRGB(15, 23, 42)
-SubmitBtn.TextSize = 12
-
-local BtnCorner = Instance.new("UICorner")
-BtnCorner.CornerRadius = UDim.new(0, 8)
-BtnCorner.Parent = SubmitBtn
-
--- 2. HÀM LẤY DỮ LIỆU TỪ ROBLOX MEMORY
-local function getAccountStats()
-    local level, beli, fragments, fruit = 1, 0, 0, "Chưa ăn trái"
+-- 1. HÀM QUÉT SÂU THÔNG TIN & KHO ĐỒ BLOX FRUITS
+local function getDetailedStats()
+    local level, beli, fragments, bounty = 1, 0, 0, 0
+    local fruit, race, melee = "None", "Human", "Combat"
+    local hasPulledLever = false
+    
+    local inventoryFruits = {}
+    local swords = {}
+    local guns = {}
+    local materials = {}
 
     pcall(function()
+        -- Chỉ số cơ bản
         if LocalPlayer:FindFirstChild("Data") then
             level = LocalPlayer.Data.Level.Value
             beli = LocalPlayer.Data.Beli.Value
             fragments = LocalPlayer.Data.Fragments.Value
-            fruit = LocalPlayer.Data.DevilFruit.Value
+            fruit = LocalPlayer.Data.DevilFruit.Value ~= "" and LocalPlayer.Data.DevilFruit.Value or "None"
+            race = LocalPlayer.Data.Race.Value
+        end
+
+        -- Bounty / Honor
+        if LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Bounty/Honor") then
+            bounty = LocalPlayer.leaderstats["Bounty/Honor"].Value
+        end
+
+        -- Tiến trình V4 (Gạt cần)
+        if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("RaceV4") then
+            hasPulledLever = LocalPlayer.Data.RaceV4.Value
+        end
+
+        -- Quét Võ / Fighting Style & Vũ khí đang có
+        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if item:IsA("Tool") then
+                if item.ToolTip == "Melee" then melee = item.Name end
+            end
+        end
+
+        -- Quét Kho đồ (Inventory & Materials)
+        if game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("CommF_") then
+            local invData = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("getInventory")
+            if type(invData) == "table" then
+                for _, item in pairs(invData) do
+                    if item.Type == "Blox Fruit" then
+                        table.insert(inventoryFruits, { name = item.Name, count = item.Count or 1 })
+                    elseif item.Type == "Sword" then
+                        table.insert(swords, { name = item.Name })
+                    elseif item.Type == "Gun" then
+                        table.insert(guns, { name = item.Name })
+                    elseif item.Type == "Material" then
+                        table.insert(materials, { name = item.Name, count = item.Count or 1 })
+                    end
+                end
+            end
         end
     end)
 
@@ -87,47 +73,71 @@ local function getAccountStats()
         level = level,
         beli = beli,
         fragments = fragments,
+        bounty = bounty,
         fruit = fruit,
+        race = race,
+        melee = melee,
+        hasPulledLever = hasPulledLever,
+        inventoryFruits = inventoryFruits,
+        swords = swords,
+        guns = guns,
+        materials = materials,
         placeId = game.PlaceId,
-        jobId = game.JobId
+        jobId = game.JobId,
+        note = "PC-01"
     }
 end
 
--- 3. KHỞI CHẠY TIẾN TRÌNH PING DỮ LIỆU NGẦM
-local function startTrackLoop(userKey)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "TrackStats Live",
-        Text = "Đã kết nối Key: " .. userKey .. "\nĐang gửi dữ liệu về Web...",
-        Duration = 5
-    })
+-- 2. TẠO MENU NHẬP KEY & VÒNG LẶP PING
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TrackStatsKeyUI"
+ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
-    task.spawn(function()
-        while task.wait(PING_INTERVAL) do
-            pcall(function()
-                local stats = getAccountStats()
-                stats.key = userKey
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 160)
+MainFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 23, 42)
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
 
-                local req = (syn and syn.request) or (http and http.request) or http_request or request
-                if req then
-                    req({
-                        Url = VERCEL_API_URL,
-                        Method = "POST",
-                        Headers = { ["Content-Type"] = "application/json" },
-                        Body = HttpService:JSONEncode(stats)
-                    })
-                end
-            end)
-        end
-    end)
-end
+local KeyInput = Instance.new("TextBox")
+KeyInput.Size = UDim2.new(0.8, 0, 0, 35)
+KeyInput.Position = UDim2.new(0.1, 0, 0.3, 0)
+KeyInput.PlaceholderText = "Nhập Key từ Web..."
+KeyInput.BackgroundColor3 = Color3.fromRGB(30, 41, 59)
+KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyInput.Parent = MainFrame
+Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
 
--- 4. BẤM NÚT XÁC NHẬN -> ẨN MENU & BẮT ĐẦU PING
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Size = UDim2.new(0.8, 0, 0, 35)
+SubmitBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+SubmitBtn.Text = "XÁC NHẬN"
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(245, 158, 11)
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.Parent = MainFrame
+Instance.new("UICorner", SubmitBtn).CornerRadius = UDim.new(0, 8)
+
 SubmitBtn.MouseButton1Click:Connect(function()
-    local keyText = KeyInput.Text
-    if keyText ~= "" and #keyText >= 3 then
+    local userKey = KeyInput.Text
+    if #userKey >= 3 then
         ScreenGui:Destroy()
-        startTrackLoop(keyText)
-    else
-        KeyInput.PlaceholderText = "Vui lòng nhập Key hợp lệ!"
+        task.spawn(function()
+            while task.wait(PING_INTERVAL) do
+                pcall(function()
+                    local data = getDetailedStats()
+                    data.key = userKey
+                    local req = (syn and syn.request) or (http and http.request) or http_request or request
+                    if req then
+                        req({
+                            Url = VERCEL_API_URL,
+                            Method = "POST",
+                            Headers = { ["Content-Type"] = "application/json" },
+                            Body = HttpService:JSONEncode(data)
+                        })
+                    end
+                end)
+            end
+        end)
     end
 end)
