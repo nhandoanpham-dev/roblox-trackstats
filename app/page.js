@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Key, X, ExternalLink, ShieldCheck, Sword, Crosshair, Package, Sparkles } from 'lucide-react';
+import { X } from 'lucide-react';
 
 export default function Home() {
   const [userKey, setUserKey] = useState('');
@@ -28,13 +28,11 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#070a12] text-slate-100 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-black text-amber-400 tracking-wide uppercase">AOTWING UDUMXBOT</h1>
-          <p className="text-xs text-slate-400">Theo Dõi Trạng Thái Tài Khoản</p>
+          <p className="text-xs text-slate-400">Quản Lý Trạng Thái Tài Khoản RBL Của Bạn</p>
         </div>
 
-        {/* Input Key */}
         <form onSubmit={(e) => { e.preventDefault(); if (userKey.trim()) setActiveKey(userKey.trim()); }} className="max-w-md mx-auto flex gap-2">
           <input
             type="text"
@@ -48,7 +46,6 @@ export default function Home() {
           </button>
         </form>
 
-        {/* Account Cards */}
         {activeKey && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {accounts.map((acc) => {
@@ -57,7 +54,7 @@ export default function Home() {
                 <div
                   key={acc.userId}
                   onClick={() => setSelectedAcc(acc)}
-                  className="bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 space-y-3 cursor-pointer transition shadow-lg relative overflow-hidden"
+                  className="bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 space-y-3 cursor-pointer transition shadow-lg"
                 >
                   <div className="flex items-center gap-3">
                     <img src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=150&height=150&format=png`} className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800" />
@@ -80,12 +77,12 @@ export default function Home() {
         )}
       </div>
 
-      {/* POPUP MODAL DETAILED VIEW (GIỐNG HỆT MẪU ẢNH) */}
+      {/* POPUP MODAL ĐỒNG BỘ ĐẦY ĐỦ VẬT PHẨM & PHỤ KIỆN */}
       {selectedAcc && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-[#0b0f19] border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-5 text-slate-200 relative max-h-[90vh] overflow-y-auto">
             
-            {/* Header Modal */}
+            {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
               <div className="flex items-center gap-3">
                 <img src={`https://www.roblox.com/headshot-thumbnail/image?userId=${selectedAcc.userId}&width=150&height=150&format=png`} className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800" />
@@ -102,7 +99,7 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Top 4 Stats Grid */}
+            {/* Stats Overview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-center">
                 <p className="text-[10px] text-slate-500 font-bold uppercase">LEVEL</p>
@@ -122,7 +119,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Middle Section (Fruit, Melee/Race, V4 Progress) */}
+            {/* Character Specs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 space-y-1">
                 <p className="text-[10px] text-slate-500 font-bold uppercase">TRÁI ÁC QUỶ ĐANG DÙNG</p>
@@ -141,35 +138,46 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Inventory Sections */}
+            {/* Inventory & Gear Details */}
             <div className="space-y-3 pt-2 text-xs">
+              {/* Kho trái ác quỷ */}
               <div>
                 <p className="text-[11px] font-bold text-amber-400 mb-2">🍍 KHO TRÁI ÁC QUỶ ({selectedAcc.inventoryFruits?.length || 0}):</p>
-                <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-500 text-[11px]">
+                <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-400 text-[11px]">
                   {selectedAcc.inventoryFruits?.length > 0 ? selectedAcc.inventoryFruits.map(f => `${f.name} x${f.count}`).join(', ') : 'Không có trái ác quỷ nào trong kho'}
                 </div>
               </div>
 
+              {/* Kiếm & Súng */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[11px] font-bold text-slate-300 mb-1">⚔️ KIẾM ĐÃ SỞ HỮU ({selectedAcc.swords?.length || 0}):</p>
-                  <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-500 text-[11px] min-h-[50px]">
+                  <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-400 text-[11px] min-h-[50px]">
                     {selectedAcc.swords?.length > 0 ? selectedAcc.swords.map(s => s.name).join(', ') : 'Không có kiếm'}
                   </div>
                 </div>
                 <div>
                   <p className="text-[11px] font-bold text-slate-300 mb-1">🔫 SÚNG ĐÃ SỞ HỮU ({selectedAcc.guns?.length || 0}):</p>
-                  <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-500 text-[11px] min-h-[50px]">
+                  <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-400 text-[11px] min-h-[50px]">
                     {selectedAcc.guns?.length > 0 ? selectedAcc.guns.map(g => g.name).join(', ') : 'Không có súng'}
                   </div>
                 </div>
               </div>
 
+              {/* Phụ kiện (Accessories) */}
+              <div>
+                <p className="text-[11px] font-bold text-cyan-400 mb-2">👑 PHỤ KIỆN ĐÃ SỞ HỮU ({selectedAcc.accessories?.length || 0}):</p>
+                <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 text-slate-400 text-[11px]">
+                  {selectedAcc.accessories?.length > 0 ? selectedAcc.accessories.map(a => a.name).join(', ') : 'Không có phụ kiện nào'}
+                </div>
+              </div>
+
+              {/* Nguyên liệu */}
               <div>
                 <p className="text-[11px] font-bold text-purple-400 mb-2">💎 NGUYÊN LIỆU ĐÃ THU THẬP ({selectedAcc.materials?.length || 0}):</p>
                 <div className="bg-[#111625] p-3 rounded-xl border border-slate-800/80 flex flex-wrap gap-2">
                   {selectedAcc.materials?.length > 0 ? selectedAcc.materials.map((m, i) => (
-                    <span key={i} className="bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] font-mono">
+                    <span key={i} className="bg-slate-900 border border-slate-800 text-slate-300 px-2.5 py-1 rounded-lg text-[10px] font-mono">
                       {m.name} <span className="text-amber-400 font-bold">x{m.count}</span>
                     </span>
                   )) : <span className="text-slate-500 text-[11px]">Chưa có nguyên liệu</span>}
@@ -177,7 +185,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Footer */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-800/80 text-[10px] text-slate-500">
               <p>Last sync: {new Date(selectedAcc.lastPing).toLocaleString('sv-SE')}</p>
               <button onClick={() => setSelectedAcc(null)} className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-4 py-1.5 rounded-lg">
