@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Search, Users, UserPlus, UserCheck, Calendar, ShieldAlert } from 'lucide-react';
 
 export default function Home() {
-  const [username, setUsername] = useState('AOTWING');
+  const [username, setUsername] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
