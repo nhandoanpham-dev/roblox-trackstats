@@ -1,8 +1,6 @@
-import './globals.css';
-
 export const metadata = {
-  title: 'Roblox TrackStats',
-  description: 'Tra cứu thông tin và chỉ số người chơi Roblox',
+  title: 'UdumXBot',
+  description: 'Trạng Thái Máy Chủ',
 };
 
 export default function RootLayout({ children }) {
