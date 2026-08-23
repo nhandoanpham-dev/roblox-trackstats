@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 
-// Khởi tạo bộ nhớ lưu trữ tạm thời trên Server
-if (!global.accountDataStore) {
-  global.accountDataStore = {};
+if (!global.multiGameStore) {
+  global.multiGameStore = {};
 }
 
-// POST: Roblox gửi dữ liệu lên
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { key, userId, ...data } = body;
+    const { key, userId, gameName, ...data } = body;
 
     if (!key || !userId) {
       return NextResponse.json({ success: false, error: 'Thiếu Key hoặc UserId' }, { status: 400 });
@@ -17,12 +15,13 @@ export async function POST(request) {
 
     const cleanKey = key.trim();
 
-    if (!global.accountDataStore[cleanKey]) {
-      global.accountDataStore[cleanKey] = {};
+    if (!global.multiGameStore[cleanKey]) {
+      global.multiGameStore[cleanKey] = {};
     }
 
-    global.accountDataStore[cleanKey][userId] = {
+    global.multiGameStore[cleanKey][userId] = {
       userId,
+      gameName: gameName || 'Khác',
       ...data,
       lastPing: Date.now(),
     };
@@ -33,7 +32,6 @@ export async function POST(request) {
   }
 }
 
-// GET: Web lấy dữ liệu về hiển thị
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get('key');
@@ -43,7 +41,7 @@ export async function GET(request) {
   }
 
   const cleanKey = key.trim();
-  const userMap = global.accountDataStore?.[cleanKey] || {};
+  const userMap = global.multiGameStore?.[cleanKey] || {};
   const accounts = Object.values(userMap);
 
   return NextResponse.json({ accounts });
