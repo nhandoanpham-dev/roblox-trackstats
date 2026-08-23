@@ -45,7 +45,7 @@ export default function Home() {
         {/* Header Dashboard */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl md:text-4xl font-black text-amber-400 tracking-wider uppercase">AOTWING UDUMXBOT</h1>
-          <p className="text-xs text-slate-400">Đồng Bộ Trực Tiếp Dữ Liệu & Kho Đồ Tài Khoản Roblox</p>
+          <p className="text-xs text-slate-400">Vì Yêu Mà Em Thấu Hiểu, Trả Lại Anh Của EM Lúc Ban Đầu, Vậy Tại Sao, Tình Yêu Mà ANh đã Trao</p>
         </div>
 
         {/* Input Key */}
