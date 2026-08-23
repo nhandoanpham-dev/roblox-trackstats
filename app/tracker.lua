@@ -1,5 +1,5 @@
 -- ===================================================
--- TRACKSTATS ADVANCED PINGER WITH FULL INVENTORY SCAN
+-- TRACKSTATS ADVANCED FULL INVENTORY SYNC
 -- ===================================================
 
 local HttpService = game:GetService("HttpService")
@@ -10,7 +10,6 @@ local LocalPlayer = Players.LocalPlayer
 local VERCEL_API_URL = "https://aotwing-dusky.vercel.app/api/ping"
 local PING_INTERVAL = 15
 
--- 1. HÀM QUÉT SÂU THÔNG TIN & KHO ĐỒ BLOX FRUITS
 local function getDetailedStats()
     local level, beli, fragments, bounty = 1, 0, 0, 0
     local fruit, race, melee = "None", "Human", "Combat"
@@ -19,10 +18,11 @@ local function getDetailedStats()
     local inventoryFruits = {}
     local swords = {}
     local guns = {}
+    local accessories = {}
     local materials = {}
 
     pcall(function()
-        -- Chỉ số cơ bản
+        -- 1. Chỉ số nhân vật
         if LocalPlayer:FindFirstChild("Data") then
             level = LocalPlayer.Data.Level.Value
             beli = LocalPlayer.Data.Beli.Value
@@ -31,36 +31,43 @@ local function getDetailedStats()
             race = LocalPlayer.Data.Race.Value
         end
 
-        -- Bounty / Honor
         if LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Bounty/Honor") then
             bounty = LocalPlayer.leaderstats["Bounty/Honor"].Value
         end
 
-        -- Tiến trình V4 (Gạt cần)
         if LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("RaceV4") then
             hasPulledLever = LocalPlayer.Data.RaceV4.Value
         end
 
-        -- Quét Võ / Fighting Style & Vũ khí đang có
+        -- 2. Quét Võ (Fighting Style)
         for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-            if item:IsA("Tool") then
-                if item.ToolTip == "Melee" then melee = item.Name end
+            if item:IsA("Tool") and item.ToolTip == "Melee" then melee = item.Name end
+        end
+        if LocalPlayer.Character then
+            for _, item in pairs(LocalPlayer.Character:GetChildren()) do
+                if item:IsA("Tool") and item.ToolTip == "Melee" then melee = item.Name end
             end
         end
 
-        -- Quét Kho đồ (Inventory & Materials)
-        if game:GetService("ReplicatedStorage"):FindFirstChild("Remotes") and game:GetService("ReplicatedStorage").Remotes:FindFirstChild("CommF_") then
-            local invData = game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("getInventory")
+        -- 3. Triệu gọi Remote Server lấy kho đồ đầy đủ (Inventory & Wear)
+        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+        if remotes and remotes:FindFirstChild("CommF_") then
+            local invData = remotes.CommF_:InvokeServer("getInventory")
             if type(invData) == "table" then
                 for _, item in pairs(invData) do
-                    if item.Type == "Blox Fruit" then
-                        table.insert(inventoryFruits, { name = item.Name, count = item.Count or 1 })
-                    elseif item.Type == "Sword" then
-                        table.insert(swords, { name = item.Name })
-                    elseif item.Type == "Gun" then
-                        table.insert(guns, { name = item.Name })
-                    elseif item.Type == "Material" then
-                        table.insert(materials, { name = item.Name, count = item.Count or 1 })
+                    local itemType = item.Type or ""
+                    local itemName = item.Name or "Unknown"
+
+                    if itemType == "Blox Fruit" then
+                        table.insert(inventoryFruits, { name = itemName, count = item.Count or 1 })
+                    elseif itemType == "Sword" then
+                        table.insert(swords, { name = itemName })
+                    elseif itemType == "Gun" then
+                        table.insert(guns, { name = itemName })
+                    elseif itemType == "Wear" or itemType == "Accessory" then
+                        table.insert(accessories, { name = itemName })
+                    elseif itemType == "Material" then
+                        table.insert(materials, { name = itemName, count = item.Count or 1 })
                     end
                 end
             end
@@ -81,6 +88,7 @@ local function getDetailedStats()
         inventoryFruits = inventoryFruits,
         swords = swords,
         guns = guns,
+        accessories = accessories,
         materials = materials,
         placeId = game.PlaceId,
         jobId = game.JobId,
@@ -88,9 +96,9 @@ local function getDetailedStats()
     }
 end
 
--- 2. TẠO MENU NHẬP KEY & VÒNG LẶP PING
+-- Menu nhập Key & Chạy vòng lặp đồng bộ
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TrackStatsKeyUI"
+ScreenGui.Name = "TrackStatsSyncUI"
 ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
@@ -112,7 +120,7 @@ Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 8)
 local SubmitBtn = Instance.new("TextButton")
 SubmitBtn.Size = UDim2.new(0.8, 0, 0, 35)
 SubmitBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
-SubmitBtn.Text = "XÁC NHẬN"
+SubmitBtn.Text = "XÁC NHẬN & ĐỒNG BỘ"
 SubmitBtn.BackgroundColor3 = Color3.fromRGB(245, 158, 11)
 SubmitBtn.Font = Enum.Font.GothamBold
 SubmitBtn.Parent = MainFrame
