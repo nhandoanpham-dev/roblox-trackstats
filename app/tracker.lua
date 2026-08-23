@@ -16,7 +16,6 @@ local MainFrame = Instance.new("Frame")
 local Title = Instance.new("TextLabel")
 local KeyInput = Instance.new("TextBox")
 local SubmitBtn = Instance.new("TextButton")
-local UICorner = Instance.new("UICorner")
 
 ScreenGui.Name = "TrackStatsKeyUI"
 ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
@@ -69,7 +68,7 @@ local BtnCorner = Instance.new("UICorner")
 BtnCorner.CornerRadius = UDim.new(0, 8)
 BtnCorner.Parent = SubmitBtn
 
--- 2. HÀM THU THẬP THỐNG KÊ CHI TIẾT
+-- 2. HÀM LẤY DỮ LIỆU TỪ ROBLOX MEMORY
 local function getAccountStats()
     local level, beli, fragments, fruit = 1, 0, 0, "Chưa ăn trái"
 
@@ -94,12 +93,11 @@ local function getAccountStats()
     }
 end
 
--- 3. KHỞI CHẠY TIẾN TRÌNH PING NGẦM
+-- 3. KHỞI CHẠY TIẾN TRÌNH PING DỮ LIỆU NGẦM
 local function startTrackLoop(userKey)
-    -- Gửi thông báo trên màn hình
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "TrackStats Live",
-        Text = "Đã kết nối Key: " .. userKey .. "\nHệ thống đang đồng bộ dữ liệu ngầm...",
+        Text = "Đã kết nối Key: " .. userKey .. "\nĐang gửi dữ liệu về Web...",
         Duration = 5
     })
 
@@ -123,13 +121,11 @@ local function startTrackLoop(userKey)
     end)
 end
 
--- 4. XỬ LÝ SỰ KIỆN KHI BẤM NÚT XÁC NHẬN
+-- 4. BẤM NÚT XÁC NHẬN -> ẨN MENU & BẮT ĐẦU PING
 SubmitBtn.MouseButton1Click:Connect(function()
     local keyText = KeyInput.Text
     if keyText ~= "" and #keyText >= 3 then
-        -- Ẩn Menu
         ScreenGui:Destroy()
-        -- Bắt đầu gửi dữ liệu về Web
         startTrackLoop(keyText)
     else
         KeyInput.PlaceholderText = "Vui lòng nhập Key hợp lệ!"
