@@ -13,69 +13,53 @@ export async function GET(request) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usernames: [username], excludeBannedUsers: false }),
     });
-    const userData = await userRes.json();
 
+    if (!userRes.ok) {
+      return Response.json({ error: 'Không thể kết nối với Roblox API. Thử lại sau!' }, { status: 502 });
+    }
+
+    const userData = await userRes.json();
     if (!userData.data || userData.data.length === 0) {
       return Response.json({ error: 'Không tìm thấy tài khoản Roblox này!' }, { status: 404 });
     }
 
     const userId = userData.data[0].id;
 
-    // 2. Gọi API Roblox & Rolimons
-    const [
-      detailsRes,
-      avatarRes,
-      headshotRes,
-      presenceRes,
-      friendsCountRes,
-      followersCountRes,
-      followingsCountRes,
-      groupsRes,
-      badgesRes,
-      rolimonsRes
-    ] = await Promise.all([
-      fetch(`https://users.roblox.com/v1/users/${userId}`),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=352x352&format=Png`),
-      fetch(`https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=150x150&format=Png`),
-      fetch('https://presence.roblox.com/v1/presence/users', {
+    // Hàm gọi API an toàn
+    const fetchSafe = async (url, options = {}) => {
+      try {
+        const res = await fetch(url, options);
+        if (!res.ok) return null;
+        return await res.json();
+      } catch {
+        return null;
+      }
+    };
+
+    // 2. Lấy dữ liệu song song
+    const [details, avatar, presence, friendsCount, followersCount, groups, badges, rolimons] = await Promise.all([
+      fetchSafe(`https://users.roblox.com/v1/users/${userId}`),
+      fetchSafe(`https://thumbnails.roblox.com/v1/users/avatar?userIds=${userId}&size=352x352&format=Png`),
+      fetchSafe('https://presence.roblox.com/v1/presence/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userIds: [userId] }),
       }),
-      fetch(`https://friends.roblox.com/v1/users/${userId}/friends/count`),
-      fetch(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
-      fetch(`https://friends.roblox.com/v1/users/${userId}/followings/count`),
-      fetch(`https://groups.roblox.com/v1/users/${userId}/groups/roles`),
-      fetch(`https://badges.roblox.com/v1/users/${userId}/badges?limit=50&sortOrder=Desc`),
-      fetch(`https://www.rolimons.com/playerapi/player/${userId}`).catch(() => null)
+      fetchSafe(`https://friends.roblox.com/v1/users/${userId}/friends/count`),
+      fetchSafe(`https://friends.roblox.com/v1/users/${userId}/followers/count`),
+      fetchSafe(`https://groups.roblox.com/v1/users/${userId}/groups/roles`),
+      fetchSafe(`https://badges.roblox.com/v1/users/${userId}/badges?limit=50&sortOrder=Desc`),
+      fetchSafe(`https://www.rolimons.com/playerapi/player/${userId}`)
     ]);
 
-    const details = await detailsRes.json();
-    const avatar = await avatarRes.json();
-    const headshot = await headshotRes.json();
-    const presence = await presenceRes.json();
-    const friendsCount = await friendsCountRes.json();
-    const followersCount = await followersCountRes.json();
-    const followingsCount = await followingsCountRes.json();
-    const groups = await groupsRes.json();
-    const badges = await badgesRes.json();
-
-    let rolimonsData = { rap: 0, value: 0, limitedsCount: 0 };
-    if (rolimonsRes && rolimonsRes.ok) {
-      const roli = await rolimonsRes.json();
-      if (roli.success) {
-        rolimonsData = {
-          rap: roli.rap || 0,
-          value: roli.value || 0,
-          limitedsCount: roli.limiteds_count || 0,
-        };
-      }
+    if (!details) {
+      return Response.json({ error: 'Tài khoản này bị khóa hoặc Roblox chặn truy cập.' }, { status: 400 });
     }
 
     const createdDate = new Date(details.created);
     const accountAgeDays = Math.floor((new Date() - createdDate) / (1000 * 60 * 60 * 24));
 
-    const userPresence = presence.userPresences?.[0] || {};
+    const userPresence = presence?.userPresences?.[0] || {};
     let statusText = 'Offline';
     let isPlaying = false;
     let gameTitle = '';
@@ -86,11 +70,9 @@ export async function GET(request) {
       gameTitle = userPresence.lastLocation || 'Trò chơi Roblox';
     } else if (userPresence.userPresenceType === 1) {
       statusText = 'Đang Online Roblox Website';
-    } else if (userPresence.userPresenceType === 3) {
-      statusText = 'Đang tạo Game (Roblox Studio)';
     }
 
-    const allBadges = badges.data || [];
+    const allBadges = badges?.data || [];
     const hasSea3 = allBadges.some(b => b.name?.toLowerCase().includes('third sea'));
     const hasSea2 = allBadges.some(b => b.name?.toLowerCase().includes('second sea'));
 
@@ -108,25 +90,23 @@ export async function GET(request) {
         created: createdDate.toLocaleDateString('vi-VN'),
         accountAgeDays,
         isBanned: details.isBanned || false,
-        avatarUrl: avatar.data?.[0]?.imageUrl || '',
-        headshotUrl: headshot.data?.[0]?.imageUrl || '',
+        avatarUrl: avatar?.data?.[0]?.imageUrl || '',
       },
-      presence: {
-        statusText,
-        isPlaying,
-        gameTitle,
-      },
+      presence: { statusText, isPlaying, gameTitle },
       social: {
-        friends: friendsCount.count || 0,
-        followers: followersCount.count || 0,
-        followings: followingsCount.count || 0,
+        friends: friendsCount?.count || 0,
+        followers: followersCount?.count || 0,
+        followings: 0,
       },
-      trading: rolimonsData,
+      trading: {
+        rap: rolimons?.rap || 0,
+        value: rolimons?.value || 0,
+      },
       gameMilestones: {
         bloxFruitsSea,
         totalBadges: allBadges.length,
       },
-      groups: (groups.data || []).slice(0, 6).map(g => ({
+      groups: (groups?.data || []).slice(0, 6).map(g => ({
         id: g.group.id,
         name: g.group.name,
         role: g.role.name,
@@ -139,6 +119,6 @@ export async function GET(request) {
       })),
     });
   } catch (err) {
-    return Response.json({ error: 'Lỗi khi kết nối với Server Roblox API' }, { status: 500 });
+    return Response.json({ error: 'Lỗi máy chủ khi tra cứu' }, { status: 500 });
   }
 }
