@@ -56,10 +56,10 @@ export default function Home() {
         {/* Header Title */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 px-4 py-1 rounded-full text-xs font-bold">
-            <Radio className="w-3.5 h-3.5 animate-pulse text-amber-400" /> TRACKSTAT LIVE DASHBOARD
+            <Radio className="w-3.5 h-3.5 animate-pulse text-amber-400" /> QUẢN LÝ TÀI KHOẢN RBL
           </div>
           <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">
-            QUẢN LÝ ACC ROBLOX <span className="text-amber-400">REALTIME</span>
+            AOTWING <span className="text-amber-400">UdumXBoT</span>
           </h1>
           <p className="text-xs text-slate-400">Nhập Key cá nhân để theo dõi tất cả các tài khoản đang chạy Script.</p>
         </div>
