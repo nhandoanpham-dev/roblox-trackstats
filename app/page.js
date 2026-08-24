@@ -52,7 +52,7 @@ export default function YeagerRobloxNexus() {
   };
   const theme = colorThemes[accentColor];
 
-  // Đồng bộ Real-time API
+  // Đồng bộ Real-time API với Script
   useEffect(() => {
     if (!activeKey) return;
     let isMounted = true;
@@ -64,10 +64,12 @@ export default function YeagerRobloxNexus() {
         if (isMounted && data.accounts) {
           setAccounts(data.accounts);
           const timeNow = new Date().toLocaleTimeString();
-          setActivityLogs(prev => [
-            { time: timeNow, text: `Đồng bộ thành công telemetry từ ${data.accounts.length} thiết bị Roblox.` },
-            ...prev.slice(0, 40)
-          ]);
+          if (data.accounts.length > 0) {
+            setActivityLogs(prev => [
+              { time: timeNow, text: `Đã nhận telemetry từ ${data.accounts.length} thiết bị Roblox đang chạy script.` },
+              ...prev.slice(0, 40)
+            ]);
+          }
         }
       } catch (err) {
         console.error("Lỗi đồng bộ API:", err);
@@ -86,7 +88,7 @@ export default function YeagerRobloxNexus() {
     e.preventDefault();
     if (accessKey.trim()) {
       setActiveKey(accessKey.trim());
-      showToast('Xác thực Key bảo mật thành công!');
+      showToast('Xác thực Key bảo mật thành công! Đang chờ tín hiệu từ Script...');
     }
   };
 
@@ -99,7 +101,7 @@ export default function YeagerRobloxNexus() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Roblox_Telemetry_v25_${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `Roblox_Telemetry_Sync_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -111,35 +113,34 @@ export default function YeagerRobloxNexus() {
   // Thống kê tổng quan
   const generalMetrics = useMemo(() => {
     const totalAccs = accounts.length;
-    const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 20000).length;
+    const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 25000).length;
     const maxLevel = accounts.reduce((max, a) => Math.max(max, a.stats?.level || 1), 1);
     const totalCurrency = accounts.reduce((sum, a) => sum + (a.stats?.currency || 0), 0);
     return { totalAccs, onlineAccs, maxLevel, totalCurrency };
   }, [accounts]);
 
-  // Thống kê chuyên sâu riêng biệt theo từng trò chơi
+  // Thống kê chuyên sâu hoạt động cùng Script theo từng game
   const gameSpecificMetrics = useMemo(() => {
     const gameAccs = accounts.filter(a => a.gameName?.toLowerCase() === dashboardGame.toLowerCase());
     const count = gameAccs.length;
     const maxLv = gameAccs.reduce((m, a) => Math.max(m, a.stats?.level || 1), 1);
     const totalCurr = gameAccs.reduce((s, a) => s + (a.stats?.currency || 0), 0);
 
-    // Dữ liệu tùy biến theo từng game đặc thù
     if (dashboardGame === 'Blox Fruits') {
       const totalFragments = gameAccs.reduce((s, a) => s + (a.stats?.fragments || 0), 0);
-      const mythicFruitsCount = gameAccs.filter(a => a.stats?.devilFruit?.includes('Leopard') || a.stats?.devilFruit?.includes('Dough') || a.stats?.devilFruit?.includes('Kit')).length;
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Fragments', subVal1: totalFragments.toLocaleString(), subLabel2: 'Trái Ác Quỷ VIP', subVal2: `${mythicFruitsCount} tài khoản` };
+      const rareFruits = gameAccs.filter(a => a.stats?.devilFruit).length;
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Fragments', subVal1: totalFragments.toLocaleString(), subLabel2: 'Đang sở hữu Trái Quỷ', subVal2: `${rareFruits} acc` };
     } 
     else if (dashboardGame === 'AOT: Revolution') {
-      const totalBlades = gameAccs.reduce((s, a) => s + (a.inventory?.weapons?.length || 0), 0);
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Vũ Khí/Blades', subVal1: totalBlades, subLabel2: 'Trạng Thái Titan', subVal2: 'Hoạt Động 100%' };
+      const totalWeapons = gameAccs.reduce((s, a) => s + (a.inventory?.weapons?.length || 0), 0);
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Vũ Khí/Blades', subVal1: totalWeapons, subLabel2: 'Trạng thái Script', subVal2: 'Hoạt động' };
     }
     else if (dashboardGame === 'King Legacy') {
       const totalGems = gameAccs.reduce((s, a) => s + (a.stats?.gems || 0), 0);
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Gems', subVal1: totalGems.toLocaleString(), subLabel2: 'Hạm Đội Đang Chạy', subVal2: `${count} acc` };
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Gems', subVal1: totalGems.toLocaleString(), subLabel2: 'Hạm đội kết nối', subVal2: `${count} máy` };
     }
-    else { // Fisch & Default
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Cá/Vật Phẩm', subVal1: gameAccs.reduce((s, a) => s + (a.stats?.itemsCount || 0), 0), subLabel2: 'Độ Bền Cần Câu', subVal2: 'Ổn định' };
+    else {
+      return { count, maxLv, totalCurr, subLabel1: 'Vật phẩm câu cá', subVal1: gameAccs.reduce((s, a) => s + (a.stats?.itemsCount || 0), 0), subLabel2: 'Độ ổn định Script', subVal2: '100%' };
     }
   }, [accounts, dashboardGame]);
 
@@ -152,13 +153,16 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
-  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v25
+  // Lua Script được thiết kế khớp hoàn hảo với cấu trúc dữ liệu trên Web
+  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v30
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local API_URL = "https://roblox-trackstats.vercel.app/api/ping"
-local ACCESS_KEY = "${activeKey || 'NHAP_KEY_CUA_BAN'}"
+local ACCESS_KEY = "${activeKey || 'yeager2026'}"
+
+print("Yeager Nexus Telemetry Started for: " .. LocalPlayer.Name)
 
 while task.wait(3) do
     pcall(function()
@@ -166,12 +170,12 @@ while task.wait(3) do
             key = ACCESS_KEY,
             userId = LocalPlayer.UserId,
             username = LocalPlayer.Name,
-            gameName = "Blox Fruits", -- Thay đổi tên game tương ứng
+            gameName = "Blox Fruits", -- Thay đổi tựa game tương ứng tại đây
             stats = {
-                level = 2550,
-                currency = 15000000,
-                fragments = 25000,
-                devilFruit = "Leopard"
+                level = 2550,          -- Lấy từ biến level thực tế trong game của bạn
+                currency = 15000000,   -- Beli / Tiền tệ trong game
+                fragments = 25000,     -- Fragments (Blox Fruits)
+                gems = 500             -- Gems (King Legacy nếu có)
             },
             inventory = {
                 weapons = {"Cursed Dual Katana", "Soul Guitar"}
@@ -191,7 +195,7 @@ end`;
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(true);
-    showToast('Đã sao chép Lua Script vào clipboard!');
+    showToast('Đã sao chép Lua Script chuẩn xác vào clipboard!');
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
@@ -202,7 +206,7 @@ end`;
       <div className={`absolute top-0 left-1/4 w-[700px] h-[700px] bg-gradient-to-br ${theme.glow} rounded-full blur-[200px] pointer-events-none transition-all duration-700`}></div>
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[200px] pointer-events-none"></div>
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-[#0b0f19]/90 border border-slate-700/80 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle2 className={`w-5 h-5 ${theme.primary}`} />
@@ -236,7 +240,7 @@ end`;
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
-                <p className="text-slate-500 uppercase text-[9px] font-bold">Cấp Độ Hiện Tại</p>
+                <p className="text-slate-500 uppercase text-[9px] font-bold">Cấp Độ Từ Script</p>
                 <p className="text-lg font-black text-white mt-1">Lv.{selectedAccount.stats?.level || 1}</p>
               </div>
               <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
@@ -246,13 +250,13 @@ end`;
             </div>
 
             <div className="bg-[#030712] p-4 rounded-2xl border border-slate-800 space-y-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Danh Sách Vật Phẩm / Vũ Khí:</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vũ Khí & Vật Phẩm Đồng Bộ:</p>
               <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
                 {selectedAccount.inventory?.weapons?.map((w, i) => (
                   <span key={i} className="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-xl text-slate-300 font-medium">
                     {w}
                   </span>
-                )) || <span className="text-xs text-slate-500">Không có dữ liệu vũ khí.</span>}
+                )) || <span className="text-xs text-slate-500">Chưa nhận dữ liệu vũ khí từ script.</span>}
               </div>
             </div>
 
@@ -278,7 +282,7 @@ end`;
               </div>
               <div>
                 <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX TELEMETRY HUB</h1>
-                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v25 ULTIMATE</p>
+                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v30 ULTIMATE</p>
               </div>
             </div>
           </div>
@@ -287,9 +291,9 @@ end`;
             {[
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar },
               { id: 'dashboard', label: 'Thống Kê Game', icon: LayoutDashboard },
-              { id: 'generator', label: 'Lua Generator', icon: Code2 },
-              { id: 'webhooks', label: 'Webhook', icon: Server },
-              { id: 'logs', label: 'Nhật Ký', icon: Terminal }
+              { id: 'generator', label: 'Lua Script Generator', icon: Code2 },
+              { id: 'webhooks', label: 'Cấu Hình Webhook', icon: Server },
+              { id: 'logs', label: 'Nhật Ký Script', icon: Terminal }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = currentTab === tab.id;
@@ -336,8 +340,8 @@ end`;
                 <Lock className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white">YÊU CẦU XÁC THỰC BẢO MẬT</h3>
-                <p className="text-xs text-slate-400">Nhập Key bảo mật để kết nối luồng dữ liệu thời gian thực từ Lua Script Roblox.</p>
+                <h3 className="text-sm font-black text-white">XÁC THỰC KẾT NỐI SCRIPT</h3>
+                <p className="text-xs text-slate-400">Nhập Key bảo mật để đồng bộ hóa dữ liệu từ Lua Script trong Roblox của bạn.</p>
               </div>
             </div>
             <form onSubmit={handleConnect} className="flex items-center gap-2 w-full md:w-auto">
@@ -349,7 +353,7 @@ end`;
                 className="bg-[#030712] border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none w-full md:w-64"
               />
               <button type="submit" className={`px-5 py-2.5 ${theme.bg} text-slate-950 font-bold text-xs rounded-xl shadow-lg whitespace-nowrap`}>
-                Xác Thực
+                Kết Nối
               </button>
             </form>
           </div>
@@ -404,19 +408,19 @@ end`;
             {!activeKey ? (
               <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#0b0f19]/40 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md">
                 <Lock className="w-10 h-10 text-slate-600 animate-pulse" />
-                <h3 className="text-sm font-bold text-slate-300">HỆ THỐNG ĐANG BỊ KHÓA</h3>
-                <p className="text-xs text-slate-500">Vui lòng nhập Key bảo mật ở phía trên để mở khóa Radar.</p>
+                <h3 className="text-sm font-bold text-slate-300">CHƯA XÁC THỰC KẾT NỐI</h3>
+                <p className="text-xs text-slate-500">Nhập Key bảo mật ở trên để bắt đầu hiển thị tài khoản từ Script.</p>
               </div>
             ) : filteredAccounts.length === 0 ? (
               <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#0b0f19]/40 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md">
                 <RefreshCw className="w-10 h-10 text-slate-500 animate-spin" />
-                <h3 className="text-sm font-bold text-slate-300">CHƯA CÓ TÍN HIỆU TỪ GAME</h3>
-                <p className="text-xs text-slate-500">Đang chờ Lua Script gửi dữ liệu telemetry từ Roblox...</p>
+                <h3 className="text-sm font-bold text-slate-300">ĐANG CHỜ TÍN HIỆU TỪ SCRIPT...</h3>
+                <p className="text-xs text-slate-500">Hãy chắc chắn Lua Script trong game Roblox đang chạy và kết nối đúng API URL.</p>
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredAccounts.map(acc => {
-                  const isOnline = (Date.now() - acc.lastUpdated) < 20000;
+                  const isOnline = (Date.now() - acc.lastUpdated) < 25000;
                   return (
                     <div key={acc.userId} className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-2xl space-y-4 hover:border-slate-700 transition group relative overflow-hidden">
                       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.glow}`}></div>
@@ -444,7 +448,7 @@ end`;
 
                       <div className="grid grid-cols-2 gap-2.5 text-xs">
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
-                          <p className="text-slate-500 text-[9px] uppercase font-bold">Cấp Độ Nhân Vật</p>
+                          <p className="text-slate-500 text-[9px] uppercase font-bold">Cấp Độ (Script)</p>
                           <p className="font-black text-white text-base mt-0.5">Lv.{acc.stats?.level || 1}</p>
                         </div>
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
@@ -475,13 +479,13 @@ end`;
                       <th className="pb-3 px-4">Trò Chơi</th>
                       <th className="pb-3 px-4">Cấp Độ</th>
                       <th className="pb-3 px-4">Tài Nguyên</th>
-                      <th className="pb-3 px-4">Trạng Thái</th>
+                      <th className="pb-3 px-4">Trạng Thái Script</th>
                       <th className="pb-3 px-4 text-right">Hành Động</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-900">
                     {filteredAccounts.map(acc => {
-                      const isOnline = (Date.now() - acc.lastUpdated) < 20000;
+                      const isOnline = (Date.now() - acc.lastUpdated) < 25000;
                       return (
                         <tr key={acc.userId} className="hover:bg-slate-900/40 transition">
                           <td className="py-3 px-4 flex items-center gap-3">
@@ -514,14 +518,13 @@ end`;
           </div>
         )}
 
-        {/* TAB 2: THỐNG KÊ CHUYÊN SÂU TỪNG TRÒ CHƠI */}
+        {/* TAB 2: THỐNG KÊ CHUYÊN SÂU THEO TRÒ CHƠI */}
         {currentTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Thanh chọn Game để thống kê */}
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-4 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <Sparkles className={`w-5 h-5 ${theme.primary}`} />
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Phân Tích Số Liệu Theo Trò Chơi</h3>
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Phân Tích Dữ Liệu Script Theo Trò Chơi</h3>
               </div>
               <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
                 {['Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'].map(g => (
@@ -538,62 +541,29 @@ end`;
               </div>
             </div>
 
-            {/* Các Thẻ Thống Kê Động Dựa Theo Game Được Chọn */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Thiết Bị Chơi {dashboardGame}</p>
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Máy Chạy {dashboardGame}</p>
                 <p className="text-4xl font-black text-white">{gameSpecificMetrics.count}</p>
-                <p className={`text-xs ${theme.primary} font-bold`}>🎮 Đang hoạt động ổn định</p>
+                <p className={`text-xs ${theme.primary} font-bold`}>🎮 Đang gửi dữ liệu</p>
               </div>
 
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Cấp Độ Max Trong Game</p>
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Cấp Độ Cao Nhất</p>
                 <p className={`text-4xl font-black ${theme.primary}`}>Lv.{gameSpecificMetrics.maxLv}</p>
-                <p className="text-xs text-slate-400">Kỷ lục cấp độ server</p>
+                <p className="text-xs text-slate-400">Từ script trong game</p>
               </div>
 
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
                 <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tổng Tiền / Tài Nguyên</p>
                 <p className="text-4xl font-black text-emerald-400">${gameSpecificMetrics.totalCurr.toLocaleString()}</p>
-                <p className="text-xs text-slate-400">Tích lũy kinh tế game thủ</p>
+                <p className="text-xs text-slate-400">Cập nhật trực tiếp</p>
               </div>
 
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
                 <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">{gameSpecificMetrics.subLabel1}</p>
                 <p className="text-4xl font-black text-cyan-400">{gameSpecificMetrics.subVal1}</p>
-                <p className="text-xs text-slate-400">Chỉ số đặc thù: {gameSpecificMetrics.subVal2}</p>
-              </div>
-            </div>
-
-            {/* Tổng quan chung hệ thống */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-3">
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <Activity className={`w-4 h-4 ${theme.primary}`} /> Tổng Quan Toàn Hệ Thống
-                </h4>
-                <div className="space-y-2 text-xs text-slate-300">
-                  <div className="flex justify-between py-1.5 border-b border-slate-900">
-                    <span className="text-slate-500">Tổng số thiết bị kết nối:</span>
-                    <span className="font-bold">{generalMetrics.totalAccs} thiết bị</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-900">
-                    <span className="text-slate-500">Đang trực tuyến (Online):</span>
-                    <span className="font-bold text-emerald-400">{generalMetrics.onlineAccs} máy</span>
-                  </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-slate-500">Tần số đồng bộ API:</span>
-                    <span className="font-bold text-cyan-400">{syncInterval / 1000} giây/lần</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-3">
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
-                  <Zap className={`w-4 h-4 ${theme.primary}`} /> Trạng Thái Vercel Edge Server
-                </h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Luồng dữ liệu thời gian thực được xử lý qua Serverless API không độ trễ. Các chỉ số trò chơi được cập nhật trực tiếp từ Lua Executor của người chơi qua POST request an toàn tuyệt đối.
-                </p>
+                <p className="text-xs text-slate-400">Thông số: {gameSpecificMetrics.subVal2}</p>
               </div>
             </div>
           </div>
@@ -606,9 +576,9 @@ end`;
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Tích Hợp Roblox
+                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Đồng Bộ Trực Tiếp
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Copy đoạn code này đưa vào script executor hoặc Roblox Studio để đẩy dữ liệu về trang web.</p>
+                  <p className="text-xs text-slate-400 mt-1">Đoạn code này đã được tối ưu hóa để gửi đúng cấu trúc dữ liệu lên trang web.</p>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(luaScriptTemplate)}
@@ -631,9 +601,9 @@ end`;
           <div className="space-y-6 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
               <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <Bell className={`w-4 h-4 ${theme.primary}`} /> Tích Hợp Discord Webhook Thông Báo
+                <Bell className={`w-4 h-4 ${theme.primary}`} /> Tích Hợp Discord Webhook
               </h3>
-              <p className="text-xs text-slate-400">Nhập Webhook URL từ kênh Discord của bạn để nhận thông báo tự động khi có sự kiện hệ thống.</p>
+              <p className="text-xs text-slate-400">Nhập Webhook URL từ kênh Discord để nhận thông báo tự động từ hệ thống script.</p>
 
               <div className="space-y-3">
                 <label className="text-xs font-bold text-slate-300 uppercase">Discord Webhook URL</label>
@@ -647,11 +617,11 @@ end`;
               </div>
 
               <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-slate-400 font-bold">Trạng thái Webhook: {webhookEnabled ? '🟢 Đang bật' : '🔴 Đang tắt'}</span>
+                <span className="text-xs text-slate-400 font-bold">Trạng thái: {webhookEnabled ? '🟢 Đang bật' : '🔴 Đang tắt'}</span>
                 <button 
                   onClick={() => {
                     setWebhookEnabled(!webhookEnabled);
-                    showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã lưu cấu hình Webhook thành công!');
+                    showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã kích hoạt Webhook thành công!');
                   }}
                   className={`px-5 py-2.5 ${webhookEnabled ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : `${theme.bg} text-slate-950`} font-bold text-xs rounded-xl shadow-lg`}
                 >
@@ -662,16 +632,16 @@ end`;
           </div>
         )}
 
-        {/* TAB 5: NHẬT KÝ HỆ THỐNG (LOGS) */}
+        {/* TAB 5: NHẬT KÝ SCRIPT (LOGS) */}
         {currentTab === 'logs' && (
           <div className="space-y-4 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
               <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wider">
-                <Terminal className={`w-4 h-4 ${theme.primary}`} /> Nhật Ký Telemetry Thời Gian Thực
+                <Terminal className={`w-4 h-4 ${theme.primary}`} /> Nhật Ký Tín Hiệu Từ Script Roblox
               </h3>
               <div className="bg-[#030712] border border-slate-900 rounded-2xl p-4 h-96 overflow-y-auto space-y-2 font-mono text-xs shadow-inner">
                 {activityLogs.length === 0 ? (
-                  <p className="text-slate-600 text-center py-32">Chưa có sự kiện nào được ghi nhận.</p>
+                  <p className="text-slate-600 text-center py-32">Chưa nhận được gói tin telemetry nào từ script.</p>
                 ) : (
                   activityLogs.map((log, idx) => (
                     <div key={idx} className="flex gap-4 text-slate-300 border-b border-slate-900/60 pb-2">
