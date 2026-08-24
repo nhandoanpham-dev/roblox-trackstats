@@ -6,7 +6,7 @@ import {
   Download, Palette, Activity, Music, Play, Pause, SkipForward,
   Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu,
   Bell, Code2, SlidersHorizontal, ExternalLink,
-  Eye, Layers, Copy, Check, Server
+  Eye, Layers, Copy, Check, Server, Zap, Shield, Sparkles
 } from 'lucide-react';
 
 export default function YeagerRobloxNexus() {
@@ -14,16 +14,17 @@ export default function YeagerRobloxNexus() {
   const [activeKey, setActiveKey] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [currentTab, setCurrentTab] = useState('radar');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' hoặc 'table'
+  const [viewMode, setViewMode] = useState('grid');
   
   // Modal chi tiết tài khoản
   const [selectedAccount, setSelectedAccount] = useState(null);
 
-  // Bộ lọc & Tìm kiếm
+  // Bộ lọc & Thống kê theo game
   const [selectedGame, setSelectedGame] = useState('ALL');
+  const [dashboardGame, setDashboardGame] = useState('Blox Fruits');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Tùy chỉnh giao diện & Cấu hình
+  // Tùy chỉnh giao diện
   const [accentColor, setAccentColor] = useState('cyan');
   const [syncInterval, setSyncInterval] = useState(3000);
   const [activityLogs, setActivityLogs] = useState([]);
@@ -98,7 +99,7 @@ export default function YeagerRobloxNexus() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Roblox_Telemetry_Advanced_${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `Roblox_Telemetry_v25_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -107,13 +108,40 @@ export default function YeagerRobloxNexus() {
 
   const gameCategories = ['ALL', 'Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'];
 
-  const metrics = useMemo(() => {
+  // Thống kê tổng quan
+  const generalMetrics = useMemo(() => {
     const totalAccs = accounts.length;
     const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 20000).length;
     const maxLevel = accounts.reduce((max, a) => Math.max(max, a.stats?.level || 1), 1);
     const totalCurrency = accounts.reduce((sum, a) => sum + (a.stats?.currency || 0), 0);
     return { totalAccs, onlineAccs, maxLevel, totalCurrency };
   }, [accounts]);
+
+  // Thống kê chuyên sâu riêng biệt theo từng trò chơi
+  const gameSpecificMetrics = useMemo(() => {
+    const gameAccs = accounts.filter(a => a.gameName?.toLowerCase() === dashboardGame.toLowerCase());
+    const count = gameAccs.length;
+    const maxLv = gameAccs.reduce((m, a) => Math.max(m, a.stats?.level || 1), 1);
+    const totalCurr = gameAccs.reduce((s, a) => s + (a.stats?.currency || 0), 0);
+
+    // Dữ liệu tùy biến theo từng game đặc thù
+    if (dashboardGame === 'Blox Fruits') {
+      const totalFragments = gameAccs.reduce((s, a) => s + (a.stats?.fragments || 0), 0);
+      const mythicFruitsCount = gameAccs.filter(a => a.stats?.devilFruit?.includes('Leopard') || a.stats?.devilFruit?.includes('Dough') || a.stats?.devilFruit?.includes('Kit')).length;
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Fragments', subVal1: totalFragments.toLocaleString(), subLabel2: 'Trái Ác Quỷ VIP', subVal2: `${mythicFruitsCount} tài khoản` };
+    } 
+    else if (dashboardGame === 'AOT: Revolution') {
+      const totalBlades = gameAccs.reduce((s, a) => s + (a.inventory?.weapons?.length || 0), 0);
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Vũ Khí/Blades', subVal1: totalBlades, subLabel2: 'Trạng Thái Titan', subVal2: 'Hoạt Động 100%' };
+    }
+    else if (dashboardGame === 'King Legacy') {
+      const totalGems = gameAccs.reduce((s, a) => s + (a.stats?.gems || 0), 0);
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Gems', subVal1: totalGems.toLocaleString(), subLabel2: 'Hạm Đội Đang Chạy', subVal2: `${count} acc` };
+    }
+    else { // Fisch & Default
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Cá/Vật Phẩm', subVal1: gameAccs.reduce((s, a) => s + (a.stats?.itemsCount || 0), 0), subLabel2: 'Độ Bền Cần Câu', subVal2: 'Ổn định' };
+    }
+  }, [accounts, dashboardGame]);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(acc => {
@@ -124,7 +152,7 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
-  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v20
+  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v25
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -138,10 +166,12 @@ while task.wait(3) do
             key = ACCESS_KEY,
             userId = LocalPlayer.UserId,
             username = LocalPlayer.Name,
-            gameName = "Blox Fruits", -- Tự động nhận diện game
+            gameName = "Blox Fruits", -- Thay đổi tên game tương ứng
             stats = {
-                level = 2550, -- Thay bằng biến lấy level thực tế trong game
-                currency = 15000000
+                level = 2550,
+                currency = 15000000,
+                fragments = 25000,
+                devilFruit = "Leopard"
             },
             inventory = {
                 weapons = {"Cursed Dual Katana", "Soul Guitar"}
@@ -168,11 +198,11 @@ end`;
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500/30">
       
-      {/* Dynamic Ambient Background Glows */}
+      {/* Background Glows */}
       <div className={`absolute top-0 left-1/4 w-[700px] h-[700px] bg-gradient-to-br ${theme.glow} rounded-full blur-[200px] pointer-events-none transition-all duration-700`}></div>
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[200px] pointer-events-none"></div>
 
-      {/* Toast Notification */}
+      {/* Toast */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-[#0b0f19]/90 border border-slate-700/80 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle2 className={`w-5 h-5 ${theme.primary}`} />
@@ -239,7 +269,7 @@ end`;
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto p-4 lg:p-8 flex flex-col gap-6 relative z-10">
 
-        {/* TOP HEADER NAVIGATION */}
+        {/* HEADER NAVIGATION */}
         <header className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-2xl p-4 rounded-3xl shadow-2xl flex flex-col xl:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3.5 w-full xl:w-auto justify-between xl:justify-start">
             <div className="flex items-center gap-3.5">
@@ -248,18 +278,17 @@ end`;
               </div>
               <div>
                 <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX TELEMETRY HUB</h1>
-                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v20 ULTIMATE</p>
+                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v25 ULTIMATE</p>
               </div>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
           <div className="flex items-center gap-1 bg-[#050811] p-1.5 rounded-2xl border border-slate-800 overflow-x-auto max-w-full">
             {[
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar },
-              { id: 'dashboard', label: 'Thống Kê Sâu', icon: LayoutDashboard },
+              { id: 'dashboard', label: 'Thống Kê Game', icon: LayoutDashboard },
               { id: 'generator', label: 'Lua Generator', icon: Code2 },
-              { id: 'webhooks', label: 'Cấu Hình Webhook', icon: Server },
+              { id: 'webhooks', label: 'Webhook', icon: Server },
               { id: 'logs', label: 'Nhật Ký', icon: Terminal }
             ].map(tab => {
               const Icon = tab.icon;
@@ -279,7 +308,6 @@ end`;
             })}
           </div>
 
-          {/* Right Tools: Theme Picker & Export */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 bg-[#050811] border border-slate-800 rounded-xl p-1">
               <Palette className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-1" />
@@ -327,7 +355,7 @@ end`;
           </div>
         )}
 
-        {/* TAB 1: RADAR TRỰC TUYẾN & KHO ĐỒ */}
+        {/* TAB 1: RADAR TRỰC TUYẾN */}
         {currentTab === 'radar' && (
           <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-[#0b0f19]/70 backdrop-blur-xl p-4 rounded-3xl border border-slate-800/80 shadow-xl">
@@ -356,7 +384,6 @@ end`;
                     className="w-full bg-[#030712] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none"
                   />
                 </div>
-                {/* View Mode Switcher */}
                 <div className="flex bg-[#030712] border border-slate-800 rounded-xl p-1 shrink-0">
                   <button 
                     onClick={() => setViewMode('grid')}
@@ -421,7 +448,7 @@ end`;
                           <p className="font-black text-white text-base mt-0.5">Lv.{acc.stats?.level || 1}</p>
                         </div>
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
-                          <p className="text-slate-500 text-[9px] uppercase font-bold">Tiền / Beli</p>
+                          <p className="text-slate-500 text-[9px] uppercase font-bold">Tài Nguyên / Tiền</p>
                           <p className="font-black text-emerald-400 text-base mt-0.5">${acc.stats?.currency?.toLocaleString() || 0}</p>
                         </div>
                       </div>
@@ -440,7 +467,6 @@ end`;
                 })}
               </div>
             ) : (
-              /* TABLE VIEW */
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 rounded-3xl p-4 overflow-x-auto shadow-2xl backdrop-blur-xl">
                 <table className="w-full text-left text-xs">
                   <thead className="text-slate-500 uppercase text-[10px] border-b border-slate-800">
@@ -488,37 +514,87 @@ end`;
           </div>
         )}
 
-        {/* TAB 2: THỐNG KÊ SÂU (DASHBOARD) */}
+        {/* TAB 2: THỐNG KÊ CHUYÊN SÂU TỪNG TRÒ CHƠI */}
         {currentTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tổng Thiết Bị</p>
-                <p className="text-4xl font-black text-white">{metrics.totalAccs}</p>
-                <p className={`text-xs ${theme.primary} font-bold`}>🟢 {metrics.onlineAccs} đang hoạt động</p>
+            {/* Thanh chọn Game để thống kê */}
+            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-4 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className={`w-5 h-5 ${theme.primary}`} />
+                <h3 className="text-sm font-black text-white uppercase tracking-wider">Phân Tích Số Liệu Theo Trò Chơi</h3>
               </div>
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Cấp Độ Cao Nhất</p>
-                <p className={`text-4xl font-black ${theme.primary}`}>Lv.{metrics.maxLevel}</p>
-                <p className="text-xs text-slate-400">Đỉnh cao toàn hệ thống</p>
-              </div>
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tổng Tài Nguyên / Beli</p>
-                <p className="text-4xl font-black text-cyan-400">${metrics.totalCurrency.toLocaleString()}</p>
-                <p className="text-xs text-slate-400">Tổng tích lũy game thủ</p>
-              </div>
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tần Suất Sync</p>
-                <p className="text-4xl font-black text-purple-400">{syncInterval / 1000}s</p>
-                <p className="text-xs text-slate-400">Độ trễ thấp tối đa</p>
+              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
+                {['Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'].map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setDashboardGame(g)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                      dashboardGame === g ? `${theme.bg} text-slate-950 shadow-lg` : 'bg-[#030712] text-slate-400 border border-slate-800 hover:text-white'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <Activity className={`w-4 h-4 ${theme.primary}`} /> Biểu Đồ Hiệu Suất Hệ Thống
-              </h3>
-              <p className="text-xs text-slate-400">Hệ thống đang hoạt động ổn định trên nền tảng Vercel Serverless Edge với luồng dữ liệu thời gian thực được tối ưu hóa.</p>
+            {/* Các Thẻ Thống Kê Động Dựa Theo Game Được Chọn */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Thiết Bị Chơi {dashboardGame}</p>
+                <p className="text-4xl font-black text-white">{gameSpecificMetrics.count}</p>
+                <p className={`text-xs ${theme.primary} font-bold`}>🎮 Đang hoạt động ổn định</p>
+              </div>
+
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Cấp Độ Max Trong Game</p>
+                <p className={`text-4xl font-black ${theme.primary}`}>Lv.{gameSpecificMetrics.maxLv}</p>
+                <p className="text-xs text-slate-400">Kỷ lục cấp độ server</p>
+              </div>
+
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tổng Tiền / Tài Nguyên</p>
+                <p className="text-4xl font-black text-emerald-400">${gameSpecificMetrics.totalCurr.toLocaleString()}</p>
+                <p className="text-xs text-slate-400">Tích lũy kinh tế game thủ</p>
+              </div>
+
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
+                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">{gameSpecificMetrics.subLabel1}</p>
+                <p className="text-4xl font-black text-cyan-400">{gameSpecificMetrics.subVal1}</p>
+                <p className="text-xs text-slate-400">Chỉ số đặc thù: {gameSpecificMetrics.subVal2}</p>
+              </div>
+            </div>
+
+            {/* Tổng quan chung hệ thống */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-3">
+                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <Activity className={`w-4 h-4 ${theme.primary}`} /> Tổng Quan Toàn Hệ Thống
+                </h4>
+                <div className="space-y-2 text-xs text-slate-300">
+                  <div className="flex justify-between py-1.5 border-b border-slate-900">
+                    <span className="text-slate-500">Tổng số thiết bị kết nối:</span>
+                    <span className="font-bold">{generalMetrics.totalAccs} thiết bị</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-900">
+                    <span className="text-slate-500">Đang trực tuyến (Online):</span>
+                    <span className="font-bold text-emerald-400">{generalMetrics.onlineAccs} máy</span>
+                  </div>
+                  <div className="flex justify-between py-1.5">
+                    <span className="text-slate-500">Tần số đồng bộ API:</span>
+                    <span className="font-bold text-cyan-400">{syncInterval / 1000} giây/lần</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-3">
+                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <Zap className={`w-4 h-4 ${theme.primary}`} /> Trạng Thái Vercel Edge Server
+                </h4>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Luồng dữ liệu thời gian thực được xử lý qua Serverless API không độ trễ. Các chỉ số trò chơi được cập nhật trực tiếp từ Lua Executor của người chơi qua POST request an toàn tuyệt đối.
+                </p>
+              </div>
             </div>
           </div>
         )}
