@@ -181,60 +181,100 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
-  const luaScriptTemplate = `-- Yeager Roblox Nexus v33 Ultimate Telemetry & Broadcast Script
+  const luaScriptTemplate = `-- Yeager Roblox Nexus v33 Real-Data Sync Script for Blox Fruits
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
 local API_URL = "https://aotwing-dusky.vercel.app/api/ping"
-local ACCESS_KEY = "${activeKey || 'yeager2026'}"
+local ACCESS_KEY = "yeager2026"
 
-print("Yeager Nexus Client Started for: " .. LocalPlayer.Name)
+local httpRequest = request or http_request or (syn and syn.request)
 
-while task.wait(3) do
+if not httpRequest then
+    print("LỖI: Executor không hỗ trợ hàm HTTP Request!")
+    return
+end
+
+print("Yeager Nexus Real-Data Sync Started for: " .. LocalPlayer.Name)
+
+-- Hàm lấy dữ liệu thực tế từ game Blox Fruits
+function getRealBloxFruitsStats()
+    local level = 1
+    local currency = 0
+    local fragments = 0
+
     pcall(function()
-        local data = {
-            key = ACCESS_KEY,
-            userId = LocalPlayer.UserId,
-            username = LocalPlayer.Name,
-            gameName = "Blox Fruits",
-            stats = {
-                level = 2550,
-                currency = 15000000,
-                fragments = 25000
-            },
-            inventory = {
-                weapons = {"Cursed Dual Katana", "Soul Guitar"}
-            },
-            lastUpdated = tick() * 1000
-        }
-        
-        local response = request({
-            Url = API_URL .. "?userId=" .. LocalPlayer.UserId,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(data)
-        })
+        -- Thử tìm trong thư mục Data của Blox Fruits
+        local dataFolder = LocalPlayer:FindFirstChild("Data")
+        local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
 
-        if response and response.StatusCode == 200 then
-            local decoded = HttpService:JSONDecode(response.Body)
-            if decoded.commands and #decoded.commands > 0 then
-                for _, cmdObj in ipairs(decoded.commands) do
-                    if cmdObj.command == "NOTIFY" then
-                        StarterGui:SetCore("SendNotification", {
-                            Title = cmdObj.payload.title or "Yeager Nexus Hub",
-                            Text = cmdObj.payload.message or "Lệnh toàn hệ thống!",
-                            Duration = 6
-                        })
-                    elseif cmdObj.command == "RECONNECT" then
-                        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+        if dataFolder then
+            if dataFolder:FindFirstChild("Level") then level = dataFolder.Level.Value end
+            if dataFolder:FindFirstChild("Beli") then currency = dataFolder.Beli.Value 
+            elseif dataFolder:FindFirstChild("Money") then currency = dataFolder.Money.Value end
+            if dataFolder:FindFirstChild("Fragments") then fragments = dataFolder.Fragments.Value end
+        elseif leaderstats then
+            if leaderstats:FindFirstChild("Level") then level = leaderstats.Level.Value end
+            if leaderstats:FindFirstChild("Beli") then currency = leaderstats.Beli.Value 
+            elseif leaderstats:FindFirstChild("Money") then currency = leaderstats.Money.Value end
+            if leaderstats:FindFirstChild("Fragments") then fragments = leaderstats.Fragments.Value end
+        end
+    end)
+
+    return level, currency, fragments
+end
+
+task.spawn(function()
+    while task.wait(3) do
+        pcall(function()
+            -- Lấy dữ liệu thật thay vì số cứng
+            local realLevel, realCurrency, realFragments = getRealBloxFruitsStats()
+
+            local data = {
+                key = ACCESS_KEY,
+                userId = LocalPlayer.UserId,
+                username = LocalPlayer.Name,
+                gameName = "Blox Fruits",
+                stats = {
+                    level = realLevel,
+                    currency = realCurrency,
+                    fragments = realFragments
+                },
+                inventory = {
+                    weapons = {"Sync Active"}
+                },
+                lastUpdated = tick() * 1000
+            }
+            
+            local response = httpRequest({
+                Url = API_URL .. "?userId=" .. LocalPlayer.UserId,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode(data)
+            })
+
+            if response and (response.StatusCode == 200 or response.status_code == 200) then
+                local bodyText = response.Body or response.body
+                local decoded = HttpService:JSONDecode(bodyText)
+                if decoded.commands and #decoded.commands > 0 then
+                    for _, cmdObj in ipairs(decoded.commands) do
+                        if cmdObj.command == "NOTIFY" then
+                            StarterGui:SetCore("SendNotification", {
+                                Title = cmdObj.payload.title or "Yeager Nexus Hub",
+                                Text = cmdObj.payload.message or "Lệnh toàn hệ thống!",
+                                Duration = 6
+                            })
+                        elseif cmdObj.command == "RECONNECT" then
+                            game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+                        end
                     end
                 end
             end
-        end
-    end)
-end`;
+        end)
+    end
+end)`;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
