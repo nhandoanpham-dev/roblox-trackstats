@@ -1,71 +1,54 @@
--- ========================================================
--- YEAGER PANNEL TRACKER v13.0 - LUA SCRIPT
--- Hướng dẫn: Đặt script này vào StarterPlayerScripts (LocalScript)
--- Nhớ bật tính năng HttpService trong game Roblox của bạn.
--- ========================================================
-
+-- Yeager Roblox Nexus v33 Ultimate Telemetry & Broadcast Script
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local localPlayer = Players.LocalPlayer
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
 
--- Thay đổi địa chỉ Vercel của bạn ở đây:
-local WEB_URL = "https://aotwing-dusky.vercel.app/api/ping" 
-local SECRET_KEY = "yeager2026" -- Khóa bảo mật trùng với cấu hình backend
+local API_URL = "https://aotwing-dusky.vercel.app/api/ping"
+local ACCESS_KEY = "yeager2026"
 
-local function fetchPlayerStats()
-    local level = 1
-    local currency = 0
+print("Yeager Nexus Client Started for: " .. LocalPlayer.Name)
 
-    -- Tự động tìm dữ liệu cấp độ và tiền tệ thông dụng trong game Roblox
-    local dataFolder = localPlayer:FindFirstChild("Data") or localPlayer:FindFirstChild("PlayerData")
-    if dataFolder then
-        if dataFolder:FindFirstChild("Level") then 
-            level = dataFolder.Level.Value 
-        end
-        if dataFolder:FindFirstChild("Beli") then 
-            currency = dataFolder.Beli.Value 
-        elseif dataFolder:FindFirstChild("Gold") then 
-            currency = dataFolder.Gold.Value 
-        elseif dataFolder:FindFirstChild("Cash") then
-            currency = dataFolder.Cash.Value
-        end
-    end
-
-    return {
-        level = level,
-        currency = currency
-    }
-end
-
--- Vòng lặp tự động gửi dữ liệu về Web mỗi 10 giây
-while true do
-    task.spawn(function()
-        local success, err = pcall(function()
-            local stats = fetchPlayerStats()
-            
-            local payload = {
-                key = SECRET_KEY,
-                action = "update_account",
-                accountData = {
-                    userId = localPlayer.UserId,
-                    username = localPlayer.Name,
-                    gameName = "Blox Fruits / AOT Revolution",
-                    stats = {
-                        level = stats.level,
-                        currency = stats.currency
-                    }
-                }
-            }
-            
-            local jsonPayload = HttpService:JSONEncode(payload)
-            local response = HttpService:PostAsync(WEB_URL, jsonPayload, Enum.HttpContentType.ApplicationJson)
-            print("[Yeager Tracker v13] Đồng bộ thành công dữ liệu lên Vercel!")
-        end)
+while task.wait(3) do
+    pcall(function()
+        local data = {
+            key = ACCESS_KEY,
+            userId = LocalPlayer.UserId,
+            username = LocalPlayer.Name,
+            gameName = "Blox Fruits",
+            stats = {
+                level = 2550,
+                currency = 15000000,
+                fragments = 25000
+            },
+            inventory = {
+                weapons = {"Cursed Dual Katana", "Soul Guitar"}
+            },
+            lastUpdated = tick() * 1000
+        }
         
-        if not success then
-            warn("[Yeager Tracker v13] Lỗi kết nối API:", err)
+        local response = request({
+            Url = API_URL .. "?userId=" .. LocalPlayer.UserId,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+
+        if response and response.StatusCode == 200 then
+            local decoded = HttpService:JSONDecode(response.Body)
+            if decoded.commands and #decoded.commands > 0 then
+                for _, cmdObj in ipairs(decoded.commands) do
+                    if cmdObj.command == "NOTIFY" then
+                        StarterGui:SetCore("SendNotification", {
+                            Title = cmdObj.payload.title or "Yeager Nexus Hub",
+                            Text = cmdObj.payload.message or "Lệnh toàn hệ thống!",
+                            Duration = 6
+                        })
+                    elseif cmdObj.command == "RE_CONNECT" or cmdObj.command == "RECONNECT" then
+                        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+                    end
+                end
+            end
         end
     end)
-    
-    task.wait(10)
 end
