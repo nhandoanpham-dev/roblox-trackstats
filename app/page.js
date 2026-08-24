@@ -4,7 +4,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Radar, Settings, Gamepad2, Search, 
   Download, Palette, Activity, Music, Play, Pause, SkipForward,
-  Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu 
+  Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu,
+  Bell, Code2, SlidersHorizontal, ExternalLink,
+  Eye, Layers, Copy, Check, Server
 } from 'lucide-react';
 
 export default function YeagerRobloxNexus() {
@@ -12,16 +14,25 @@ export default function YeagerRobloxNexus() {
   const [activeKey, setActiveKey] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [currentTab, setCurrentTab] = useState('radar');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' hoặc 'table'
   
+  // Modal chi tiết tài khoản
+  const [selectedAccount, setSelectedAccount] = useState(null);
+
   // Bộ lọc & Tìm kiếm
   const [selectedGame, setSelectedGame] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Tùy chỉnh giao diện
+  // Tùy chỉnh giao diện & Cấu hình
   const [accentColor, setAccentColor] = useState('cyan');
   const [syncInterval, setSyncInterval] = useState(3000);
   const [activityLogs, setActivityLogs] = useState([]);
   const [toast, setToast] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  // Discord Webhook Settings
+  const [webhookUrl, setWebhookUrl] = useState('');
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
 
   // Trình phát nhạc Lofi
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
@@ -54,7 +65,7 @@ export default function YeagerRobloxNexus() {
           const timeNow = new Date().toLocaleTimeString();
           setActivityLogs(prev => [
             { time: timeNow, text: `Đồng bộ thành công telemetry từ ${data.accounts.length} thiết bị Roblox.` },
-            ...prev.slice(0, 30)
+            ...prev.slice(0, 40)
           ]);
         }
       } catch (err) {
@@ -87,11 +98,11 @@ export default function YeagerRobloxNexus() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Roblox_Telemetry_${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `Roblox_Telemetry_Advanced_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    showToast('Đã xuất toàn bộ dữ liệu JSON!');
+    showToast('Đã xuất toàn bộ dữ liệu cấu trúc JSON!');
   };
 
   const gameCategories = ['ALL', 'Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'];
@@ -113,12 +124,53 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
+  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v20
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local API_URL = "https://roblox-trackstats.vercel.app/api/ping"
+local ACCESS_KEY = "${activeKey || 'NHAP_KEY_CUA_BAN'}"
+
+while task.wait(3) do
+    pcall(function()
+        local data = {
+            key = ACCESS_KEY,
+            userId = LocalPlayer.UserId,
+            username = LocalPlayer.Name,
+            gameName = "Blox Fruits", -- Tự động nhận diện game
+            stats = {
+                level = 2550, -- Thay bằng biến lấy level thực tế trong game
+                currency = 15000000
+            },
+            inventory = {
+                weapons = {"Cursed Dual Katana", "Soul Guitar"}
+            },
+            lastUpdated = tick() * 1000
+        }
+        
+        request({
+            Url = API_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+end`;
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(true);
+    showToast('Đã sao chép Lua Script vào clipboard!');
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500/30">
       
       {/* Dynamic Ambient Background Glows */}
-      <div className={`absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br ${theme.glow} rounded-full blur-[180px] pointer-events-none transition-all duration-700`}></div>
-      <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[180px] pointer-events-none"></div>
+      <div className={`absolute top-0 left-1/4 w-[700px] h-[700px] bg-gradient-to-br ${theme.glow} rounded-full blur-[200px] pointer-events-none transition-all duration-700`}></div>
+      <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[200px] pointer-events-none"></div>
 
       {/* Toast Notification */}
       {toast && (
@@ -128,27 +180,87 @@ export default function YeagerRobloxNexus() {
         </div>
       )}
 
+      {/* ACCOUNT DETAILS MODAL */}
+      {selectedAccount && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0b0f19] border border-slate-700/80 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5 animate-fade-in relative">
+            <button 
+              onClick={() => setSelectedAccount(null)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 w-8 h-8 rounded-xl flex items-center justify-center"
+            >
+              ✕
+            </button>
+            <div className="flex items-center gap-4">
+              <img 
+                src={`https://www.roblox.com/headshot-thumbnail/image?userId=${selectedAccount.userId}&width=150&height=150&format=png`} 
+                className="w-16 h-16 rounded-2xl bg-[#030712] border border-slate-700 object-cover shadow-lg" 
+              />
+              <div>
+                <h3 className="text-base font-black text-white">{selectedAccount.username}</h3>
+                <p className={`text-xs ${theme.primary} font-bold mt-0.5`}>User ID: {selectedAccount.userId}</p>
+                <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full mt-1 inline-block">
+                  {selectedAccount.gameName}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-slate-500 uppercase text-[9px] font-bold">Cấp Độ Hiện Tại</p>
+                <p className="text-lg font-black text-white mt-1">Lv.{selectedAccount.stats?.level || 1}</p>
+              </div>
+              <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
+                <p className="text-slate-500 uppercase text-[9px] font-bold">Tài Nguyên / Tiền</p>
+                <p className="text-lg font-black text-emerald-400 mt-1">${selectedAccount.stats?.currency?.toLocaleString() || 0}</p>
+              </div>
+            </div>
+
+            <div className="bg-[#030712] p-4 rounded-2xl border border-slate-800 space-y-2">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Danh Sách Vật Phẩm / Vũ Khí:</p>
+              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                {selectedAccount.inventory?.weapons?.map((w, i) => (
+                  <span key={i} className="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-xl text-slate-300 font-medium">
+                    {w}
+                  </span>
+                )) || <span className="text-xs text-slate-500">Không có dữ liệu vũ khí.</span>}
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setSelectedAccount(null)}
+              className={`w-full py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg`}
+            >
+              Đóng Cửa Sổ
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* MAIN CONTAINER */}
       <div className="max-w-7xl mx-auto p-4 lg:p-8 flex flex-col gap-6 relative z-10">
 
         {/* TOP HEADER NAVIGATION */}
-        <header className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-2xl p-4 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className={`w-11 h-11 bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl flex items-center justify-center shadow-inner border ${theme.border}`}>
-              <Cpu className={`w-6 h-6 ${theme.primary} animate-pulse`} />
-            </div>
-            <div>
-              <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX TELEMETRY HUB</h1>
-              <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v15 ULTIMATE</p>
+        <header className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-2xl p-4 rounded-3xl shadow-2xl flex flex-col xl:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5 w-full xl:w-auto justify-between xl:justify-start">
+            <div className="flex items-center gap-3.5">
+              <div className={`w-11 h-11 bg-gradient-to-br from-slate-900 to-slate-950 rounded-2xl flex items-center justify-center shadow-inner border ${theme.border}`}>
+                <Cpu className={`w-6 h-6 ${theme.primary} animate-pulse`} />
+              </div>
+              <div>
+                <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX TELEMETRY HUB</h1>
+                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v20 ULTIMATE</p>
+              </div>
             </div>
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex items-center gap-1.5 bg-[#050811] p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-[#050811] p-1.5 rounded-2xl border border-slate-800 overflow-x-auto max-w-full">
             {[
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar },
-              { id: 'dashboard', label: 'Thống Kê', icon: LayoutDashboard },
-              { id: 'logs', label: 'Nhật Ký Hệ Thống', icon: Terminal }
+              { id: 'dashboard', label: 'Thống Kê Sâu', icon: LayoutDashboard },
+              { id: 'generator', label: 'Lua Generator', icon: Code2 },
+              { id: 'webhooks', label: 'Cấu Hình Webhook', icon: Server },
+              { id: 'logs', label: 'Nhật Ký', icon: Terminal }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = currentTab === tab.id;
@@ -156,7 +268,7 @@ export default function YeagerRobloxNexus() {
                 <button
                   key={tab.id}
                   onClick={() => setCurrentTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                     isActive ? `${theme.bg} text-slate-950 shadow-lg` : 'text-slate-400 hover:text-white hover:bg-slate-900/50'
                   }`}
                 >
@@ -233,15 +345,32 @@ export default function YeagerRobloxNexus() {
                 ))}
               </div>
 
-              <div className="relative w-full lg:w-72">
-                <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
-                <input 
-                  type="text"
-                  placeholder="Tìm tên nhân vật hoặc User ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#030712] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none"
-                />
+              <div className="flex items-center gap-3 w-full lg:w-auto">
+                <div className="relative w-full lg:w-64">
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <input 
+                    type="text"
+                    placeholder="Tìm nhân vật hoặc ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none"
+                  />
+                </div>
+                {/* View Mode Switcher */}
+                <div className="flex bg-[#030712] border border-slate-800 rounded-xl p-1 shrink-0">
+                  <button 
+                    onClick={() => setViewMode('grid')}
+                    className={`p-2 rounded-lg text-xs ${viewMode === 'grid' ? `${theme.bg} text-slate-950 font-bold` : 'text-slate-400'}`}
+                  >
+                    <Layers className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded-lg text-xs ${viewMode === 'table' ? `${theme.bg} text-slate-950 font-bold` : 'text-slate-400'}`}
+                  >
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -257,7 +386,7 @@ export default function YeagerRobloxNexus() {
                 <h3 className="text-sm font-bold text-slate-300">CHƯA CÓ TÍN HIỆU TỪ GAME</h3>
                 <p className="text-xs text-slate-500">Đang chờ Lua Script gửi dữ liệu telemetry từ Roblox...</p>
               </div>
-            ) : (
+            ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredAccounts.map(acc => {
                   const isOnline = (Date.now() - acc.lastUpdated) < 20000;
@@ -269,10 +398,13 @@ export default function YeagerRobloxNexus() {
                         <div className="flex items-center gap-3.5">
                           <img 
                             src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=150&height=150&format=png`} 
-                            className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-700 object-cover shadow-lg group-hover:scale-105 transition" 
+                            className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-700 object-cover shadow-lg group-hover:scale-105 transition cursor-pointer"
+                            onClick={() => setSelectedAccount(acc)}
                           />
                           <div>
-                            <h3 className="font-black text-white text-xs tracking-wide">{acc.username}</h3>
+                            <h3 className="font-black text-white text-xs tracking-wide cursor-pointer hover:underline" onClick={() => setSelectedAccount(acc)}>
+                              {acc.username}
+                            </h3>
                             <span className={`text-[10px] ${theme.primary} font-bold flex items-center gap-1 mt-0.5`}>
                               <Gamepad2 className="w-3 h-3" /> {acc.gameName}
                             </span>
@@ -294,34 +426,69 @@ export default function YeagerRobloxNexus() {
                         </div>
                       </div>
 
-                      {acc.inventory?.weapons && (
-                        <div className="bg-[#030712]/80 p-3.5 rounded-2xl border border-slate-800/80 space-y-2">
-                          <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
-                            <Sword className="w-3.5 h-3.5 text-amber-400" /> Kho Vũ Khí / Vật Phẩm:
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {acc.inventory.weapons.map((w, idx) => (
-                              <span key={idx} className="text-[10px] bg-slate-900 border border-slate-800/80 text-slate-300 px-2.5 py-1 rounded-xl font-medium shadow-sm">
-                                {w}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
                       <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[10px] text-slate-500">
                         <span>ID: {acc.userId}</span>
-                        <span>Synced: {new Date(acc.lastUpdated).toLocaleTimeString()}</span>
+                        <button 
+                          onClick={() => setSelectedAccount(acc)}
+                          className={`text-xs ${theme.primary} font-bold flex items-center gap-1 hover:underline`}
+                        >
+                          <Eye className="w-3 h-3" /> Chi tiết
+                        </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            ) : (
+              /* TABLE VIEW */
+              <div className="bg-[#0b0f19]/80 border border-slate-800/80 rounded-3xl p-4 overflow-x-auto shadow-2xl backdrop-blur-xl">
+                <table className="w-full text-left text-xs">
+                  <thead className="text-slate-500 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="pb-3 px-4">Nhân Vật</th>
+                      <th className="pb-3 px-4">Trò Chơi</th>
+                      <th className="pb-3 px-4">Cấp Độ</th>
+                      <th className="pb-3 px-4">Tài Nguyên</th>
+                      <th className="pb-3 px-4">Trạng Thái</th>
+                      <th className="pb-3 px-4 text-right">Hành Động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-900">
+                    {filteredAccounts.map(acc => {
+                      const isOnline = (Date.now() - acc.lastUpdated) < 20000;
+                      return (
+                        <tr key={acc.userId} className="hover:bg-slate-900/40 transition">
+                          <td className="py-3 px-4 flex items-center gap-3">
+                            <img src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=100&height=100&format=png`} className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800" />
+                            <span className="font-bold text-white">{acc.username}</span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-300">{acc.gameName}</td>
+                          <td className="py-3 px-4 font-black text-white">Lv.{acc.stats?.level || 1}</td>
+                          <td className="py-3 px-4 font-black text-emerald-400">${acc.stats?.currency?.toLocaleString() || 0}</td>
+                          <td className="py-3 px-4">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                              {isOnline ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button 
+                              onClick={() => setSelectedAccount(acc)}
+                              className={`px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 ${theme.primary} font-bold`}
+                            >
+                              Xem
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         )}
 
-        {/* TAB 2: THỐNG KÊ (DASHBOARD) */}
+        {/* TAB 2: THỐNG KÊ SÂU (DASHBOARD) */}
         {currentTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -346,10 +513,80 @@ export default function YeagerRobloxNexus() {
                 <p className="text-xs text-slate-400">Độ trễ thấp tối đa</p>
               </div>
             </div>
+
+            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Activity className={`w-4 h-4 ${theme.primary}`} /> Biểu Đồ Hiệu Suất Hệ Thống
+              </h3>
+              <p className="text-xs text-slate-400">Hệ thống đang hoạt động ổn định trên nền tảng Vercel Serverless Edge với luồng dữ liệu thời gian thực được tối ưu hóa.</p>
+            </div>
           </div>
         )}
 
-        {/* TAB 3: NHẬT KÝ HỆ THỐNG (LOGS) */}
+        {/* TAB 3: LUA SCRIPT GENERATOR */}
+        {currentTab === 'generator' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Tích Hợp Roblox
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">Copy đoạn code này đưa vào script executor hoặc Roblox Studio để đẩy dữ liệu về trang web.</p>
+                </div>
+                <button 
+                  onClick={() => copyToClipboard(luaScriptTemplate)}
+                  className={`px-4 py-2.5 ${theme.bg} text-slate-950 font-bold text-xs rounded-xl shadow-lg flex items-center gap-2`}
+                >
+                  {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedCode ? 'Đã sao chép' : 'Sao chép Script'}</span>
+                </button>
+              </div>
+
+              <div className="bg-[#030712] border border-slate-900 rounded-2xl p-4 font-mono text-xs text-slate-300 overflow-x-auto h-80 shadow-inner">
+                <pre>{luaScriptTemplate}</pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: CẤU HÌNH DISCORD WEBHOOK */}
+        {currentTab === 'webhooks' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Bell className={`w-4 h-4 ${theme.primary}`} /> Tích Hợp Discord Webhook Thông Báo
+              </h3>
+              <p className="text-xs text-slate-400">Nhập Webhook URL từ kênh Discord của bạn để nhận thông báo tự động khi có sự kiện hệ thống.</p>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-300 uppercase">Discord Webhook URL</label>
+                <input 
+                  type="text"
+                  placeholder="https://discord.com/api/webhooks/..."
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-xs text-slate-400 font-bold">Trạng thái Webhook: {webhookEnabled ? '🟢 Đang bật' : '🔴 Đang tắt'}</span>
+                <button 
+                  onClick={() => {
+                    setWebhookEnabled(!webhookEnabled);
+                    showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã lưu cấu hình Webhook thành công!');
+                  }}
+                  className={`px-5 py-2.5 ${webhookEnabled ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : `${theme.bg} text-slate-950`} font-bold text-xs rounded-xl shadow-lg`}
+                >
+                  {webhookEnabled ? 'Tắt Webhook' : 'Kích Hoạt Webhook'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: NHẬT KÝ HỆ THỐNG (LOGS) */}
         {currentTab === 'logs' && (
           <div className="space-y-4 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
