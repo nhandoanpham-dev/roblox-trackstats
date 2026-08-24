@@ -1,54 +1,47 @@
--- Yeager Roblox Nexus v33 Ultimate Telemetry & Broadcast Script
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
-local LocalPlayer = Players.LocalPlayer
+local Http = game:GetService("HttpService")
+local Plr = game.Players.LocalPlayer
+local Url = "https://aotwing-dusky.vercel.app/api/ping?userId=" .. Plr.UserId
+local Req = request or http_request or (syn and syn.request)
 
-local API_URL = "https://aotwing-dusky.vercel.app/api/ping"
-local ACCESS_KEY = "yeager2026"
+if not Req then return end
 
-print("Yeager Nexus Client Started for: " .. LocalPlayer.Name)
+task.spawn(function()
+    while task.wait(3) do
+        pcall(function()
+            local d = Plr:FindFirstChild("Data") or Plr:FindFirstChild("leaderstats")
+            local lv = d and (d:FindFirstChild("Level") and d.Level.Value or 1) or 1
+            local cur = d and (d:FindFirstChild("Beli") and d.Beli.Value or d:FindFirstChild("Money") and d.Money.Value or 0) or 0
+            local fr = d and (d:FindFirstChild("Fragments") and d.Fragments.Value or 0) or 0
 
-while task.wait(3) do
-    pcall(function()
-        local data = {
-            key = ACCESS_KEY,
-            userId = LocalPlayer.UserId,
-            username = LocalPlayer.Name,
-            gameName = "Blox Fruits",
-            stats = {
-                level = 2550,
-                currency = 15000000,
-                fragments = 25000
-            },
-            inventory = {
-                weapons = {"Cursed Dual Katana", "Soul Guitar"}
-            },
-            lastUpdated = tick() * 1000
-        }
-        
-        local response = request({
-            Url = API_URL .. "?userId=" .. LocalPlayer.UserId,
-            Method = "POST",
-            Headers = {["Content-Type"] = "application/json"},
-            Body = HttpService:JSONEncode(data)
-        })
+            local res = Req({
+                Url = Url,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = Http:JSONEncode({
+                    key = "yeager2026",
+                    userId = Plr.UserId,
+                    username = Plr.Name,
+                    gameName = "Blox Fruits",
+                    stats = {level = lv, currency = cur, fragments = fr},
+                    lastUpdated = tick() * 1000
+                })
+            })
 
-        if response and response.StatusCode == 200 then
-            local decoded = HttpService:JSONDecode(response.Body)
-            if decoded.commands and #decoded.commands > 0 then
-                for _, cmdObj in ipairs(decoded.commands) do
-                    if cmdObj.command == "NOTIFY" then
-                        StarterGui:SetCore("SendNotification", {
-                            Title = cmdObj.payload.title or "Yeager Nexus Hub",
-                            Text = cmdObj.payload.message or "Lệnh toàn hệ thống!",
-                            Duration = 6
-                        })
-                    elseif cmdObj.command == "RE_CONNECT" or cmdObj.command == "RECONNECT" then
-                        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+            if res and (res.StatusCode == 200 or res.status_code == 200) then
+                local bodyText = res.Body or res.body
+                if bodyText and bodyText ~= "" then
+                    local dec = Http:JSONDecode(bodyText)
+                    if dec.commands then
+                        for _, c in ipairs(dec.commands) do
+                            if c.command == "NOTIFY" then
+                                game:GetService("StarterGui"):SetCore("SendNotification", {Title = c.payload.title or "Nexus", Text = c.payload.message})
+                            elseif c.command == "RECONNECT" then
+                                game:GetService("TeleportService"):Teleport(game.PlaceId, Plr)
+                            end
+                        end
                     end
                 end
             end
-        end
-    end)
-end
+        end)
+    end
+end)
