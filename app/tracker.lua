@@ -1,114 +1,71 @@
--- ==========================================================
--- YEAGER NEXUS ULTIMATE v10.0 - ROBLOX TELEMETRY TRACKER
--- Quản trị viên: Pham Yen (Yeager Pannel)
--- ==========================================================
+-- ========================================================
+-- YEAGER PANNEL TRACKER v13.0 - LUA SCRIPT
+-- Hướng dẫn: Đặt script này vào StarterPlayerScripts (LocalScript)
+-- Nhớ bật tính năng HttpService trong game Roblox của bạn.
+-- ========================================================
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local localPlayer = Players.LocalPlayer
 
--- CẤU HÌNH HỆ THỐNG
-local CONFIG = {
-    API_URL = "https://your-vercel-domain.vercel.app/api/ping", -- Thay bằng domain Vercel của bạn
-    SECRET_KEY = "kuri_live_your_key_here",                     -- Khóa bảo mật trùng với Web
-    SYNC_INTERVAL = 3                                          -- Tần suất đồng bộ (giây)
-}
+-- Thay đổi địa chỉ Vercel của bạn ở đây:
+local WEB_URL = "https://aotwing-dusky.vercel.app/api/ping" 
+local SECRET_KEY = "yeager2026" -- Khóa bảo mật trùng với cấu hình backend
 
--- Tự động nhận diện tên game đang chạy
-local function getGameName()
-    local placeId = game.PlaceId
-    if placeId == 2753915549 or placeId == 4442272183 or placeId == 7449423635 then
-        return "Blox Fruits"
-    elseif placeId == 4520749081 then
-        return "King Legacy"
-    else
-        local success, info = pcall(function()
-            return game:GetService("MarketplaceService"):GetProductInfo(placeId).Name
-        end)
-        return success and info or "Roblox Custom Game"
-    end
-end
+local function fetchPlayerStats()
+    local level = 1
+    local currency = 0
 
--- Thu thập thông số nhân vật chi tiết
-local function gatherPlayerData()
-    local stats = {
-        level = 1,
-        currency = 0,
-        premiumCurrency = 0,
-        bounty = 0
-    }
-    
-    local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
-    if leaderstats then
-        local lvl = leaderstats:FindFirstChild("Level") or leaderstats:FindFirstChild("Lv") or leaderstats:FindFirstChild("Cấp Độ")
-        if lvl then stats.level = tonumber(lvl.Value) or 1 end
-        
-        local beli = leaderstats:FindFirstChild("Beli") or leaderstats:FindFirstChild("Cash") or leaderstats:FindFirstChild("Money") or leaderstats:FindFirstChild("Tiền")
-        if beli then stats.currency = tonumber(beli.Value) or 0 end
-        
-        local frag = leaderstats:FindFirstChild("Fragments") or leaderstats:FindFirstChild("Gems") or leaderstats:FindFirstChild("Fragments/Gems")
-        if frag then stats.premiumCurrency = tonumber(frag.Value) or 0 end
-        
-        local bounty = leaderstats:FindFirstChild("Bounty") or leaderstats:FindFirstChild("Honor") or leaderstats:FindFirstChild("Thưởng")
-        if bounty then stats.bounty = tonumber(bounty.Value) or 0 end
-    end
-    
-    -- Quét vũ khí / item trong balo và nhân vật
-    local weapons = {}
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    local character = LocalPlayer.Character
-    
-    if backpack then
-        for _, item in ipairs(backpack:GetChildren()) do
-            if item:IsA("Tool") and not table.find(weapons, item.Name) then
-                table.insert(weapons, item.Name)
-            end
+    -- Tự động tìm dữ liệu cấp độ và tiền tệ thông dụng trong game Roblox
+    local dataFolder = localPlayer:FindFirstChild("Data") or localPlayer:FindFirstChild("PlayerData")
+    if dataFolder then
+        if dataFolder:FindFirstChild("Level") then 
+            level = dataFolder.Level.Value 
+        end
+        if dataFolder:FindFirstChild("Beli") then 
+            currency = dataFolder.Beli.Value 
+        elseif dataFolder:FindFirstChild("Gold") then 
+            currency = dataFolder.Gold.Value 
+        elseif dataFolder:FindFirstChild("Cash") then
+            currency = dataFolder.Cash.Value
         end
     end
-    if character then
-        for _, item in ipairs(character:GetChildren()) do
-            if item:IsA("Tool") and not table.find(weapons, item.Name) then
-                table.insert(weapons, item.Name)
-            end
-        end
-    end
-    
+
     return {
-        userId = LocalPlayer.UserId,
-        username = LocalPlayer.Name,
-        gameName = getGameName(),
-        lastUpdated = tick() * 1000,
-        stats = stats,
-        inventory = {
-            weapons = weapons
-        }
+        level = level,
+        currency = currency
     }
 end
 
--- Vòng lặp gửi dữ liệu ngầm không giật lag
-task.spawn(function()
-    print("🛡️ [Yeager Nexus v10.0]: Đã khởi động luồng theo dõi thời gian thực!")
-    while true do
+-- Vòng lặp tự động gửi dữ liệu về Web mỗi 10 giây
+while true do
+    task.spawn(function()
         local success, err = pcall(function()
-            local playerData = gatherPlayerData()
-            local payload = HttpService:JSONEncode({
-                key = CONFIG.SECRET_KEY,
-                account = playerData
-            })
+            local stats = fetchPlayerStats()
             
-            HttpService:PostAsync(
-                CONFIG.API_URL, 
-                payload, 
-                Enum.HttpContentType.ApplicationJson, 
-                false, 
-                { ["Content-Type"] = "application/json" }
-            )
+            local payload = {
+                key = SECRET_KEY,
+                action = "update_account",
+                accountData = {
+                    userId = localPlayer.UserId,
+                    username = localPlayer.Name,
+                    gameName = "Blox Fruits / AOT Revolution",
+                    stats = {
+                        level = stats.level,
+                        currency = stats.currency
+                    }
+                }
+            }
+            
+            local jsonPayload = HttpService:JSONEncode(payload)
+            local response = HttpService:PostAsync(WEB_URL, jsonPayload, Enum.HttpContentType.ApplicationJson)
+            print("[Yeager Tracker v13] Đồng bộ thành công dữ liệu lên Vercel!")
         end)
         
         if not success then
-            warn("⚠️ [Yeager Nexus v10.0 Sync Error]: " .. tostring(err))
+            warn("[Yeager Tracker v13] Lỗi kết nối API:", err)
         end
-        
-        task.wait(CONFIG.SYNC_INTERVAL)
-    end
-end)
+    end)
+    
+    task.wait(10)
+end
