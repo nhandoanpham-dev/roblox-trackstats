@@ -5,19 +5,18 @@ import {
   LayoutDashboard, Radar, Zap, ShieldCheck, Settings, 
   Gamepad2, Search, Swords, Download, Filter, 
   Server, Share2, Palette, Activity, Clock, Music, Play, Pause, SkipForward,
-  UserCheck, DollarSign, Plus, Trash2, Edit3, CheckCircle2, Lock
+  UserCheck, DollarSign, Plus, Trash2, Edit3, CheckCircle2, Lock, ShieldAlert
 } from 'lucide-react';
 
-export default function YeagerNexusV12() {
+export default function YeagerNexusV13() {
   const [accessKey, setAccessKey] = useState('');
   const [activeKey, setActiveKey] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [currentSection, setCurrentSection] = useState('dashboard');
   
-  // Bộ lọc & Tìm kiếm Radar
+  // Bộ lọc Radar
   const [selectedGame, setSelectedGame] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [sortBy, setSortBy] = useState('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAcc, setSelectedAcc] = useState(null);
 
@@ -28,19 +27,25 @@ export default function YeagerNexusV12() {
   ]);
   const [newOrder, setNewOrder] = useState({ customer: '', service: '', price: '', booster: '' });
 
-  // Cấu hình Enterprise v12
+  // Quản lý Trung Gian Escrow (Escrow Hub)
+  const [escrows, setEscrows] = useState([
+    { id: 'ESC-101', seller: 'Shop_A', buyer: 'Gamer_B', item: 'Acc Max Level + Full Quà', value: '500K', status: 'Đang giữ tài sản' }
+  ]);
+  const [newEscrow, setNewEscrow] = useState({ seller: '', buyer: '', item: '', value: '' });
+
+  // Cấu hình Enterprise v13
   const [accentColor, setAccentColor] = useState('amber');
   const [syncInterval, setSyncInterval] = useState(3500);
   const [activityLogs, setActivityLogs] = useState([]);
   const [toast, setToast] = useState(null);
 
-  // Webhook & Discord Embed Builder
+  // Webhook Discord Embed Builder
   const [webhookUrl, setWebhookUrl] = useState('');
-  const [embedTitle, setEmbedTitle] = useState('🛡️ YEAGER PANNEL - THÔNG BÁO DỊCH VỤ');
-  const [embedDesc, setEmbedDesc] = useState('Shop cày thuê & trung gian uy tín, nhanh chóng, bảo mật tuyệt đối.');
+  const [embedTitle, setEmbedTitle] = useState('🛡️ YEAGER PANNEL - THÔNG BÁO GIAO DỊCH');
+  const [embedDesc, setEmbedDesc] = useState('Hệ thống trung gian uy tín, cày thuê nhanh chóng, bảo mật tuyệt đối.');
   const [embedColor, setEmbedColor] = useState('#f59e0b');
 
-  // Trình phát nhạc Lofi góc màn hình
+  // Trình phát nhạc Lofi
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const playlist = [
@@ -49,7 +54,6 @@ export default function YeagerNexusV12() {
     { title: "Yeager's Theme", artist: "Epic Orchestral Lofi" }
   ];
 
-  // Bảng màu chủ đạo
   const colorThemes = {
     amber: { primary: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500/50', glow: 'bg-amber-500/5' },
     cyan: { primary: 'text-cyan-400', bg: 'bg-cyan-500', border: 'border-cyan-500/50', glow: 'bg-cyan-500/5' },
@@ -58,7 +62,7 @@ export default function YeagerNexusV12() {
   };
   const theme = colorThemes[accentColor];
 
-  // Đồng bộ Real-time từ API
+  // Đồng bộ API Real-time
   useEffect(() => {
     if (!activeKey) return;
     let isMounted = true;
@@ -71,7 +75,7 @@ export default function YeagerNexusV12() {
           setAccounts(data.accounts);
           const timeNow = new Date().toLocaleTimeString();
           setActivityLogs(prev => [
-            { time: timeNow, text: `Đồng bộ thành công ${data.accounts.length} thiết bị trực tuyến.` },
+            { time: timeNow, text: `Đồng bộ thành công ${data.accounts.length} thiết bị từ Roblox Tracker.` },
             ...prev.slice(0, 30)
           ]);
         }
@@ -105,7 +109,7 @@ export default function YeagerNexusV12() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `YeagerNexus_v12_${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `YeagerNexus_v13_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -126,7 +130,7 @@ export default function YeagerNexusV12() {
             title: embedTitle,
             description: embedDesc,
             color: parseInt(embedColor.replace('#', ''), 16),
-            footer: { text: "Yeager Pannel Enterprise v12 Pro" },
+            footer: { text: "Yeager Pannel Enterprise v13 Pro" },
             timestamp: new Date().toISOString()
           }]
         })
@@ -150,10 +154,26 @@ export default function YeagerNexusV12() {
     };
     setOrders([orderItem, ...orders]);
     setNewOrder({ customer: '', service: '', price: '', booster: '' });
-    showToast('Đã tạo đơn hàng mới thành công!');
+    showToast('Đã tạo đơn hàng mới!');
   };
 
-  const gameCategories = ['ALL', 'Blox Fruits', 'King Legacy', 'AOT: Revolution', 'Fisch', 'Pet Simulator 99'];
+  const handleAddEscrow = (e) => {
+    e.preventDefault();
+    if (!newEscrow.seller || !newEscrow.buyer) {
+      showToast('Vui lòng nhập người bán và người mua!');
+      return;
+    }
+    const escrowItem = {
+      id: `ESC-${Date.now().toString().slice(-4)}`,
+      ...newEscrow,
+      status: 'Đang giữ tài sản'
+    };
+    setEscrows([escrowItem, ...escrows]);
+    setNewEscrow({ seller: '', buyer: '', item: '', value: '' });
+    showToast('Đã tạo phiên trung gian mới thành công!');
+  };
+
+  const gameCategories = ['ALL', 'Blox Fruits', 'King Legacy', 'AOT: Revolution', 'Fisch'];
 
   const metrics = useMemo(() => {
     const totalAccs = accounts.length;
@@ -165,8 +185,7 @@ export default function YeagerNexusV12() {
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(acc => {
-      const normalizedGame = acc.gameName?.includes('Blox Fruits') ? 'Blox Fruits' : acc.gameName;
-      const matchGame = selectedGame === 'ALL' || normalizedGame === selectedGame;
+      const matchGame = selectedGame === 'ALL' || acc.gameName?.includes(selectedGame);
       const isOnline = (Date.now() - acc.lastUpdated) < 20000;
       const matchStatus = statusFilter === 'ALL' || (statusFilter === 'ONLINE' ? isOnline : !isOnline);
       const matchSearch = acc.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -198,7 +217,7 @@ export default function YeagerNexusV12() {
             </div>
             <div>
               <h1 className="text-sm font-black text-white tracking-wider">YEAGER PANNEL</h1>
-              <p className={`text-[10px] ${theme.primary} font-bold`}>ENTERPRISE v12 PRO</p>
+              <p className={`text-[10px] ${theme.primary} font-bold`}>ENTERPRISE v13 PRO</p>
             </div>
           </div>
 
@@ -207,7 +226,7 @@ export default function YeagerNexusV12() {
               { id: 'dashboard', label: 'Tổng Quan', icon: LayoutDashboard },
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar, count: metrics.onlineAccs },
               { id: 'orders', label: 'Quản Lý Đơn Hàng', icon: Zap, count: orders.length },
-              { id: 'escrow', label: 'Trung Gian Escrow', icon: ShieldCheck },
+              { id: 'escrow', label: 'Trung Gian Escrow', icon: ShieldAlert, count: escrows.length },
               { id: 'builder', label: 'Discord Embed Builder', icon: Share2 },
               { id: 'settings', label: 'Cài Đặt & Logs', icon: Settings },
             ].map((item) => {
@@ -267,26 +286,26 @@ export default function YeagerNexusV12() {
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col min-h-screen relative z-10 p-4 lg:p-8 overflow-y-auto">
         
-        {/* HEADER BAR */}
+        {/* HEADER */}
         <header className="flex items-center justify-between bg-[#080d1a] p-4 rounded-3xl border border-slate-800/80 shadow-xl mb-6 backdrop-blur-xl">
           <div className="flex items-center gap-3 lg:hidden">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-slate-900 border ${theme.border}`}>
               <ShieldCheck className={`w-5 h-5 ${theme.primary}`} />
             </div>
-            <span className="font-black text-sm text-white">YEAGER v12</span>
+            <span className="font-black text-sm text-white">YEAGER v13</span>
           </div>
 
           <div className="hidden lg:flex items-center gap-2">
             <h2 className="text-sm font-black uppercase text-slate-300 tracking-wider">
               {currentSection === 'dashboard' && '📊 Tổng Quan Hệ Thống'}
-              {currentSection === 'radar' && '📡 Radar Quản Lý Tài Khoản Roblox'}
-              {currentSection === 'orders' && '⚡ Quản Lý Đơn Hàng & Cày Thuê'}
-              {currentSection === 'escrow' && '🛡️ Trung Gian Escrow An Toàn'}
+              {currentSection === 'radar' && '📡 Radar Trực Tuyến Tài Khoản Game'}
+              {currentSection === 'orders' && '⚡ Quản Lý Đơn Hàng Cày Thuê'}
+              {currentSection === 'escrow' && '🛡️ Hệ Thống Trung Gian Escrow'}
               {currentSection === 'builder' && '🎨 Trình Tạo Discord Embed Builder'}
-              {currentSection === 'settings' && '⚙️ Cài Đặt Hệ Thống & Nhật Ký'}
+              {currentSection === 'settings' && '⚙️ Cài Đặt Hệ Thống & Logs'}
             </h2>
           </div>
 
@@ -310,35 +329,35 @@ export default function YeagerNexusV12() {
           </div>
         </header>
 
-        {/* ---------------- 1. DASHBOARD ---------------- */}
+        {/* 1. DASHBOARD */}
         {currentSection === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-[#080d1a] border border-slate-800 p-5 rounded-3xl space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500">Tài Khoản Kết Nối</p>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Máy Trực Tuyến</p>
                 <p className="text-3xl font-black text-white">{metrics.totalAccs}</p>
-                <p className="text-[11px] text-emerald-400">🟢 {metrics.onlineAccs} máy live trực tuyến</p>
+                <p className="text-[11px] text-emerald-400">🟢 {metrics.onlineAccs} đang hoạt động</p>
               </div>
               <div className="bg-[#080d1a] border border-slate-800 p-5 rounded-3xl space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500">Đơn Hàng Đang Xử Lý</p>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Đơn Cày Thuê</p>
                 <p className={`text-3xl font-black ${theme.primary}`}>{orders.length} Đơn</p>
-                <p className="text-[11px] text-slate-400">Hệ thống đơn hàng tự động</p>
+                <p className="text-[11px] text-slate-400">Đang xử lý tự động</p>
               </div>
               <div className="bg-[#080d1a] border border-slate-800 p-5 rounded-3xl space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500">Cấp Độ Cao Nhất</p>
-                <p className="text-3xl font-black text-cyan-400">Lv. {metrics.maxLevel}</p>
-                <p className="text-[11px] text-slate-400">Đồng bộ từ Lua Tracker</p>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Giao Dịch Trung Gian</p>
+                <p className="text-3xl font-black text-cyan-400">{escrows.length} Phiên</p>
+                <p className="text-[11px] text-slate-400">Đảm bảo an toàn 100%</p>
               </div>
               <div className="bg-[#080d1a] border border-slate-800 p-5 rounded-3xl space-y-2">
-                <p className="text-[10px] uppercase font-bold text-slate-500">Tổng Beli Toàn Bộ</p>
+                <p className="text-[10px] uppercase font-bold text-slate-500">Tổng Beli / Tài Sản</p>
                 <p className="text-3xl font-black text-purple-400">${metrics.totalCurrency.toLocaleString()}</p>
-                <p className="text-[11px] text-slate-400">Tài sản tích lũy game</p>
+                <p className="text-[11px] text-slate-400">Đồng bộ từ Lua Tracker</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* ---------------- 2. RADAR TRỰC TUYẾN ---------------- */}
+        {/* 2. RADAR TRỰC TUYẾN */}
         {currentSection === 'radar' && (
           <div className="space-y-5 animate-fade-in">
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none bg-[#080d1a] p-3 rounded-2xl border border-slate-800">
@@ -355,19 +374,6 @@ export default function YeagerNexusV12() {
               ))}
             </div>
 
-            <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-[#080d1a] p-3 rounded-2xl border border-slate-800">
-              <div className="relative w-full md:w-80">
-                <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Tìm người chơi, ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none"
-                />
-              </div>
-            </div>
-
             {!activeKey ? (
               <div className="h-[40vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#080d1a]/50 border border-slate-800 rounded-3xl p-8">
                 <Lock className="w-8 h-8 text-slate-500 animate-pulse" />
@@ -377,19 +383,16 @@ export default function YeagerNexusV12() {
             ) : filteredAccounts.length === 0 ? (
               <div className="h-[40vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#080d1a]/50 border border-slate-800 rounded-3xl p-8">
                 <Server className="w-10 h-10 text-slate-600 animate-bounce" />
-                <h3 className="text-sm font-bold text-slate-300">CHƯA CÓ TÀI KHOẢN KẾT NỐI</h3>
+                <h3 className="text-sm font-bold text-slate-300">CHƯA CÓ DỮ LIỆU GAME KẾT NỐI</h3>
+                <p className="text-xs text-slate-500">Hãy chạy Script Roblox để gửi dữ liệu về đây.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {filteredAccounts.map(acc => {
                   const isOnline = (Date.now() - acc.lastUpdated) < 20000;
                   return (
-                    <div 
-                      key={acc.userId}
-                      onClick={() => setSelectedAcc(acc)}
-                      className={`bg-[#080d1a] border border-slate-800 hover:${theme.border} p-4 rounded-3xl cursor-pointer transition shadow-xl`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
+                    <div key={acc.userId} className="bg-[#080d1a] border border-slate-800 p-4 rounded-3xl shadow-xl space-y-3">
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <img src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=150&height=150&format=png`} className="w-11 h-11 rounded-2xl bg-[#03060c] border border-slate-700 object-cover" />
                           <div>
@@ -405,7 +408,7 @@ export default function YeagerNexusV12() {
                           <p className="font-black text-white text-sm">Lv.{acc.stats?.level || 1}</p>
                         </div>
                         <div className="bg-[#03060c] p-2.5 rounded-xl border border-slate-800">
-                          <p className="text-slate-500 text-[9px] uppercase font-bold">Beli</p>
+                          <p className="text-slate-500 text-[9px] uppercase font-bold">Tiền / Beli</p>
                           <p className="font-black text-emerald-400 text-sm">${acc.stats?.currency?.toLocaleString() || 0}</p>
                         </div>
                       </div>
@@ -417,49 +420,21 @@ export default function YeagerNexusV12() {
           </div>
         )}
 
-        {/* ---------------- 3. QUẢN LÝ ĐƠN HÀNG ---------------- */}
+        {/* 3. QUẢN LÝ ĐƠN HÀNG */}
         {currentSection === 'orders' && (
           <div className="space-y-5 animate-fade-in">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Form tạo đơn mới */}
               <form onSubmit={handleAddOrder} className="bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
                 <h3 className="text-sm font-black text-white flex items-center gap-2">
-                  <Plus className={`w-4 h-4 ${theme.primary}`} /> Tạo Đơn Cày Thuê Mới
+                  <Plus className={`w-4 h-4 ${theme.primary}`} /> Tạo Đơn Cày Thuê
                 </h3>
-                <input
-                  type="text"
-                  placeholder="Tên khách hàng / Discord..."
-                  value={newOrder.customer}
-                  onChange={(e) => setNewOrder({ ...newOrder, customer: e.target.value })}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Gói cày (VD: Max Lv Blox Fruits)..."
-                  value={newOrder.service}
-                  onChange={(e) => setNewOrder({ ...newOrder, service: e.target.value })}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Giá tiền (VD: 150K)..."
-                  value={newOrder.price}
-                  onChange={(e) => setNewOrder({ ...newOrder, price: e.target.value })}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Thợ nhận đơn..."
-                  value={newOrder.booster}
-                  onChange={(e) => setNewOrder({ ...newOrder, booster: e.target.value })}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <button type="submit" className={`w-full py-2.5 ${theme.bg} text-black font-bold text-xs rounded-xl shadow`}>
-                  Thêm Đơn Hàng
-                </button>
+                <input type="text" placeholder="Tên khách hàng..." value={newOrder.customer} onChange={(e) => setNewOrder({ ...newOrder, customer: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Gói dịch vụ..." value={newOrder.service} onChange={(e) => setNewOrder({ ...newOrder, service: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Giá tiền..." value={newOrder.price} onChange={(e) => setNewOrder({ ...newOrder, price: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Thợ cày..." value={newOrder.booster} onChange={(e) => setNewOrder({ ...newOrder, booster: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <button type="submit" className={`w-full py-2.5 ${theme.bg} text-black font-bold text-xs rounded-xl shadow`}>Thêm Đơn</button>
               </form>
 
-              {/* Danh sách đơn hàng */}
               <div className="lg:col-span-2 bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
                 <h3 className="text-sm font-black text-white">📋 Danh Sách Đơn Đang Xử Lý</h3>
                 <div className="space-y-2.5">
@@ -471,17 +446,9 @@ export default function YeagerNexusV12() {
                           <span className="text-white font-semibold">• {ord.customer}</span>
                         </div>
                         <p className="text-slate-300 font-medium">{ord.service}</p>
-                        <p className="text-[10px] text-slate-500">Thợ: {ord.booster || 'Chưa nhận'} • Giá: <b className="text-emerald-400">{ord.price}</b></p>
+                        <p className="text-[10px] text-slate-500">Thợ: {ord.booster} • Giá: <b className="text-emerald-400">{ord.price}</b></p>
                       </div>
-                      <button 
-                        onClick={() => {
-                          setOrders(orders.filter(o => o.id !== ord.id));
-                          showToast(`Đã xóa đơn ${ord.id}`);
-                        }}
-                        className="text-slate-500 hover:text-rose-400 p-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <button onClick={() => setOrders(orders.filter(o => o.id !== ord.id))} className="text-slate-500 hover:text-rose-400 p-2"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>
@@ -490,20 +457,44 @@ export default function YeagerNexusV12() {
           </div>
         )}
 
-        {/* ---------------- 4. TRUNG GIAN ESCROW ---------------- */}
+        {/* 4. TRUNG GIAN ESCROW */}
         {currentSection === 'escrow' && (
           <div className="space-y-5 animate-fade-in">
-            <div className="bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
-              <h3 className="text-sm font-black text-white">🛡️ Hệ Thống Giữ Hộ Trung Gian</h3>
-              <p className="text-xs text-slate-400">Kiểm tra tài sản thời gian thực và quản lý các phiên giao dịch an toàn.</p>
-              <button onClick={() => showToast('Đã khởi tạo phiên Escrow an toàn!')} className={`py-2.5 px-6 ${theme.bg} text-black font-bold text-xs rounded-xl`}>
-                Tạo Phiên Trung Gian Mới
-              </button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              <form onSubmit={handleAddEscrow} className="bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <ShieldAlert className={`w-4 h-4 ${theme.primary}`} /> Tạo Phiên Trung Gian Mới
+                </h3>
+                <input type="text" placeholder="Người bán (Seller)..." value={newEscrow.seller} onChange={(e) => setNewEscrow({ ...newEscrow, seller: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Người mua (Buyer)..." value={newEscrow.buyer} onChange={(e) => setNewEscrow({ ...newEscrow, buyer: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Tài sản / Vật phẩm giao dịch..." value={newEscrow.item} onChange={(e) => setNewEscrow({ ...newEscrow, item: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Giá trị giao dịch (VD: 200K)..." value={newEscrow.value} onChange={(e) => setNewEscrow({ ...newEscrow, value: e.target.value })} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <button type="submit" className={`w-full py-2.5 ${theme.bg} text-black font-bold text-xs rounded-xl shadow`}>Khởi Tạo Escrow</button>
+              </form>
+
+              <div className="lg:col-span-2 bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
+                <h3 className="text-sm font-black text-white">🛡️ Các Phiên Trung Gian Đang Hoạt Động</h3>
+                <div className="space-y-2.5">
+                  {escrows.map(esc => (
+                    <div key={esc.id} className="bg-[#03060c] border border-slate-800 p-4 rounded-2xl flex items-center justify-between text-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold ${theme.primary}`}>{esc.id}</span>
+                          <span className="text-white font-semibold">• Bán: {esc.seller} | Mua: {esc.buyer}</span>
+                        </div>
+                        <p className="text-slate-300 font-medium">{esc.item}</p>
+                        <p className="text-[10px] text-emerald-400 font-bold">Giá trị: {esc.value} • Trạng thái: {esc.status}</p>
+                      </div>
+                      <button onClick={() => setEscrows(escrows.filter(e => e.id !== esc.id))} className="text-slate-500 hover:text-rose-400 p-2"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* ---------------- 5. DISCORD EMBED BUILDER ---------------- */}
+        {/* 5. DISCORD EMBED BUILDER */}
         {currentSection === 'builder' && (
           <div className="space-y-5 animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -511,54 +502,29 @@ export default function YeagerNexusV12() {
                 <h3 className="text-sm font-black text-white flex items-center gap-2">
                   <Share2 className="w-4 h-4 text-blue-400" /> Thiết Kế Khung Discord Embed
                 </h3>
-                <input
-                  type="text"
-                  placeholder="Webhook URL kênh Discord..."
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Tiêu đề Embed..."
-                  value={embedTitle}
-                  onChange={(e) => setEmbedTitle(e.target.value)}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                />
-                <textarea
-                  placeholder="Nội dung mô tả Embed..."
-                  value={embedDesc}
-                  onChange={(e) => setEmbedDesc(e.target.value)}
-                  className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none h-24 resize-none"
-                />
+                <input type="text" placeholder="Webhook URL kênh Discord..." value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <input type="text" placeholder="Tiêu đề Embed..." value={embedTitle} onChange={(e) => setEmbedTitle(e.target.value)} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none" />
+                <textarea placeholder="Nội dung mô tả Embed..." value={embedDesc} onChange={(e) => setEmbedDesc(e.target.value)} className="w-full bg-[#03060c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none h-24 resize-none" />
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-slate-400">Màu Khung:</span>
-                  <input
-                    type="color"
-                    value={embedColor}
-                    onChange={(e) => setEmbedColor(e.target.value)}
-                    className="w-8 h-8 rounded-lg bg-transparent cursor-pointer"
-                  />
+                  <input type="color" value={embedColor} onChange={(e) => setEmbedColor(e.target.value)} className="w-8 h-8 rounded-lg bg-transparent cursor-pointer" />
                 </div>
-                <button onClick={sendDiscordEmbedWebhook} className={`w-full py-2.5 ${theme.bg} text-black font-bold text-xs rounded-xl shadow`}>
-                  Bắn Embed Lên Discord 🚀
-                </button>
+                <button onClick={sendDiscordEmbedWebhook} className={`w-full py-2.5 ${theme.bg} text-black font-bold text-xs rounded-xl shadow`}>Bắn Embed Lên Discord 🚀</button>
               </div>
 
-              {/* Preview Khung Discord */}
               <div className="bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4 flex flex-col">
                 <h3 className="text-sm font-black text-white">👁️ Xem Trước Giao Diện Discord</h3>
                 <div className="bg-[#313338] p-4 rounded-2xl border-l-4 shadow-xl flex-1 space-y-2" style={{ borderLeftColor: embedColor }}>
                   <p className="text-xs font-bold text-white">{embedTitle}</p>
                   <p className="text-[11px] text-slate-300 whitespace-pre-wrap">{embedDesc}</p>
-                  <p className="text-[9px] text-slate-400 pt-2 border-t border-[#3f4147]">Yeager Pannel Enterprise v12 Pro</p>
+                  <p className="text-[9px] text-slate-400 pt-2 border-t border-[#3f4147]">Yeager Pannel Enterprise v13 Pro</p>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* ---------------- 6. SETTINGS & LOGS ---------------- */}
+        {/* 6. SETTINGS & LOGS */}
         {currentSection === 'settings' && (
           <div className="space-y-5 animate-fade-in">
             <div className="bg-[#080d1a] border border-slate-800 p-6 rounded-3xl space-y-4">
