@@ -6,7 +6,7 @@ import {
   Download, Palette, Activity, Music, Play, Pause, SkipForward,
   Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu,
   Bell, Code2, SlidersHorizontal, ExternalLink,
-  Eye, Layers, Copy, Check, Server, Zap, Shield, Sparkles
+  Eye, Layers, Copy, Check, Server, Zap, Shield, Sparkles, Send, Radio
 } from 'lucide-react';
 
 export default function YeagerRobloxNexus() {
@@ -16,26 +16,24 @@ export default function YeagerRobloxNexus() {
   const [currentTab, setCurrentTab] = useState('radar');
   const [viewMode, setViewMode] = useState('grid');
   
-  // Modal chi tiết tài khoản
   const [selectedAccount, setSelectedAccount] = useState(null);
-
-  // Bộ lọc & Thống kê theo game
   const [selectedGame, setSelectedGame] = useState('ALL');
   const [dashboardGame, setDashboardGame] = useState('Blox Fruits');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Tùy chỉnh giao diện
   const [accentColor, setAccentColor] = useState('cyan');
   const [syncInterval, setSyncInterval] = useState(3000);
   const [activityLogs, setActivityLogs] = useState([]);
   const [toast, setToast] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // Discord Webhook Settings
+  // RCON Remote Commands State
+  const [targetUserId, setTargetUserId] = useState('');
+  const [customNotification, setCustomNotification] = useState('');
+
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookEnabled, setWebhookEnabled] = useState(false);
 
-  // Trình phát nhạc Lofi
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const playlist = [
@@ -52,7 +50,6 @@ export default function YeagerRobloxNexus() {
   };
   const theme = colorThemes[accentColor];
 
-  // Đồng bộ Real-time API với Script
   useEffect(() => {
     if (!activeKey) return;
     let isMounted = true;
@@ -66,7 +63,7 @@ export default function YeagerRobloxNexus() {
           const timeNow = new Date().toLocaleTimeString();
           if (data.accounts.length > 0) {
             setActivityLogs(prev => [
-              { time: timeNow, text: `Đã nhận telemetry từ ${data.accounts.length} thiết bị Roblox đang chạy script.` },
+              { time: timeNow, text: `Đã đồng bộ telemetry thành công cho ${data.accounts.length} thiết bị Roblox.` },
               ...prev.slice(0, 40)
             ]);
           }
@@ -88,7 +85,7 @@ export default function YeagerRobloxNexus() {
     e.preventDefault();
     if (accessKey.trim()) {
       setActiveKey(accessKey.trim());
-      showToast('Xác thực Key bảo mật thành công! Đang chờ tín hiệu từ Script...');
+      showToast('Xác thực Key thành công! Đang kết nối mạng lưới Script...');
     }
   };
 
@@ -97,29 +94,31 @@ export default function YeagerRobloxNexus() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const handleExportData = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `Roblox_Telemetry_Sync_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    showToast('Đã xuất toàn bộ dữ liệu cấu trúc JSON!');
+  const sendRconCommand = async (commandType, payloadData = {}) => {
+    if (!targetUserId) {
+      showToast('Vui lòng chọn hoặc nhập User ID cần điều khiển!');
+      return;
+    }
+    try {
+      const res = await fetch('/api/ping', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: targetUserId, command: commandType, payload: payloadData })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Đã gửi lệnh [${commandType}] đến User ID: ${targetUserId}!`);
+        setCustomNotification('');
+      } else {
+        showToast(`Lỗi: ${data.error}`);
+      }
+    } catch (err) {
+      showToast('Không thể gửi lệnh RCON!');
+    }
   };
 
   const gameCategories = ['ALL', 'Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'];
 
-  // Thống kê tổng quan
-  const generalMetrics = useMemo(() => {
-    const totalAccs = accounts.length;
-    const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 25000).length;
-    const maxLevel = accounts.reduce((max, a) => Math.max(max, a.stats?.level || 1), 1);
-    const totalCurrency = accounts.reduce((sum, a) => sum + (a.stats?.currency || 0), 0);
-    return { totalAccs, onlineAccs, maxLevel, totalCurrency };
-  }, [accounts]);
-
-  // Thống kê chuyên sâu hoạt động cùng Script theo từng game
   const gameSpecificMetrics = useMemo(() => {
     const gameAccs = accounts.filter(a => a.gameName?.toLowerCase() === dashboardGame.toLowerCase());
     const count = gameAccs.length;
@@ -129,18 +128,10 @@ export default function YeagerRobloxNexus() {
     if (dashboardGame === 'Blox Fruits') {
       const totalFragments = gameAccs.reduce((s, a) => s + (a.stats?.fragments || 0), 0);
       const rareFruits = gameAccs.filter(a => a.stats?.devilFruit).length;
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Fragments', subVal1: totalFragments.toLocaleString(), subLabel2: 'Đang sở hữu Trái Quỷ', subVal2: `${rareFruits} acc` };
+      return { count, maxLv, totalCurr, subLabel1: 'Tổng Fragments', subVal1: totalFragments.toLocaleString(), subLabel2: 'Trái Quỷ sở hữu', subVal2: `${rareFruits} acc` };
     } 
-    else if (dashboardGame === 'AOT: Revolution') {
-      const totalWeapons = gameAccs.reduce((s, a) => s + (a.inventory?.weapons?.length || 0), 0);
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Vũ Khí/Blades', subVal1: totalWeapons, subLabel2: 'Trạng thái Script', subVal2: 'Hoạt động' };
-    }
-    else if (dashboardGame === 'King Legacy') {
-      const totalGems = gameAccs.reduce((s, a) => s + (a.stats?.gems || 0), 0);
-      return { count, maxLv, totalCurr, subLabel1: 'Tổng Gems', subVal1: totalGems.toLocaleString(), subLabel2: 'Hạm đội kết nối', subVal2: `${count} máy` };
-    }
     else {
-      return { count, maxLv, totalCurr, subLabel1: 'Vật phẩm câu cá', subVal1: gameAccs.reduce((s, a) => s + (a.stats?.itemsCount || 0), 0), subLabel2: 'Độ ổn định Script', subVal2: '100%' };
+      return { count, maxLv, totalCurr, subLabel1: 'Trạng thái Script', subVal1: 'Hoạt động 100%', subLabel2: 'Độ trễ', subVal2: '< 50ms' };
     }
   }, [accounts, dashboardGame]);
 
@@ -153,16 +144,17 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
-  // Lua Script được thiết kế khớp hoàn hảo với cấu trúc dữ liệu trên Web
-  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry Script v30
+  // Lua Script Nâng Cấp tích hợp cả Telemetry & Xử lý Lệnh RCON từ Web
+  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry & RCON Script v32
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
-local API_URL = "https://roblox-trackstats.vercel.app/api/ping"
+local API_URL = "https://aotwing-dusky.vercel.app//api/ping"
 local ACCESS_KEY = "${activeKey || 'yeager2026'}"
 
-print("Yeager Nexus Telemetry Started for: " .. LocalPlayer.Name)
+print("Yeager Nexus Client Started for: " .. LocalPlayer.Name)
 
 while task.wait(3) do
     pcall(function()
@@ -170,12 +162,11 @@ while task.wait(3) do
             key = ACCESS_KEY,
             userId = LocalPlayer.UserId,
             username = LocalPlayer.Name,
-            gameName = "Blox Fruits", -- Thay đổi tựa game tương ứng tại đây
+            gameName = "Blox Fruits",
             stats = {
-                level = 2550,          -- Lấy từ biến level thực tế trong game của bạn
-                currency = 15000000,   -- Beli / Tiền tệ trong game
-                fragments = 25000,     -- Fragments (Blox Fruits)
-                gems = 500             -- Gems (King Legacy nếu có)
+                level = 2550,
+                currency = 15000000,
+                fragments = 25000
             },
             inventory = {
                 weapons = {"Cursed Dual Katana", "Soul Guitar"}
@@ -183,30 +174,45 @@ while task.wait(3) do
             lastUpdated = tick() * 1000
         }
         
-        request({
-            Url = API_URL,
+        local response = request({
+            Url = API_URL .. "?userId=" .. LocalPlayer.UserId,
             Method = "POST",
             Headers = {["Content-Type"] = "application/json"},
             Body = HttpService:JSONEncode(data)
         })
+
+        if response and response.StatusCode == 200 then
+            local decoded = HttpService:JSONDecode(response.Body)
+            if decoded.commands and #decoded.commands > 0 then
+                for _, cmdObj in ipairs(decoded.commands) do
+                    if cmdObj.command == "NOTIFY" then
+                        StarterGui:SetCore("SendNotification", {
+                            Title = "Yeager Nexus Admin",
+                            Text = cmdObj.payload.message or "Lệnh từ Web Dashboard!",
+                            Duration = 5
+                        })
+                    elseif cmdObj.command == "RECONNECT" then
+                        game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
+                    end
+                end
+            end
+        end
     end)
 end`;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(true);
-    showToast('Đã sao chép Lua Script chuẩn xác vào clipboard!');
+    showToast('Đã sao chép Lua Script nâng cao vào clipboard!');
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-100 font-sans relative overflow-x-hidden selection:bg-cyan-500/30">
       
-      {/* Background Glows */}
       <div className={`absolute top-0 left-1/4 w-[700px] h-[700px] bg-gradient-to-br ${theme.glow} rounded-full blur-[200px] pointer-events-none transition-all duration-700`}></div>
       <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[200px] pointer-events-none"></div>
 
-      {/* Toast Notification */}
       {toast && (
         <div className="fixed top-6 right-6 z-50 bg-[#0b0f19]/90 border border-slate-700/80 backdrop-blur-xl text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce">
           <CheckCircle2 className={`w-5 h-5 ${theme.primary}`} />
@@ -240,32 +246,29 @@ end`;
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
-                <p className="text-slate-500 uppercase text-[9px] font-bold">Cấp Độ Từ Script</p>
+                <p className="text-slate-500 uppercase text-[9px] font-bold">Cấp Độ Hiện Tại</p>
                 <p className="text-lg font-black text-white mt-1">Lv.{selectedAccount.stats?.level || 1}</p>
               </div>
               <div className="bg-[#030712] p-3.5 rounded-2xl border border-slate-800">
-                <p className="text-slate-500 uppercase text-[9px] font-bold">Tài Nguyên / Tiền</p>
+                <p className="text-slate-500 uppercase text-[9px] font-bold">Số Tiền</p>
                 <p className="text-lg font-black text-emerald-400 mt-1">${selectedAccount.stats?.currency?.toLocaleString() || 0}</p>
               </div>
             </div>
 
-            <div className="bg-[#030712] p-4 rounded-2xl border border-slate-800 space-y-2">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vũ Khí & Vật Phẩm Đồng Bộ:</p>
-              <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
-                {selectedAccount.inventory?.weapons?.map((w, i) => (
-                  <span key={i} className="text-xs bg-slate-900 border border-slate-800 px-3 py-1 rounded-xl text-slate-300 font-medium">
-                    {w}
-                  </span>
-                )) || <span className="text-xs text-slate-500">Chưa nhận dữ liệu vũ khí từ script.</span>}
-              </div>
+            <div className="flex gap-2 pt-2">
+              <button 
+                onClick={() => { setTargetUserId(selectedAccount.userId); setCurrentTab('rcon'); setSelectedAccount(null); }}
+                className={`flex-1 py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2`}
+              >
+                <Radio className="w-4 h-4" /> Điều Khiển RCON Nhanh
+              </button>
+              <button 
+                onClick={() => setSelectedAccount(null)}
+                className="px-5 py-3 bg-slate-900 border border-slate-800 text-slate-300 font-bold text-xs rounded-xl"
+              >
+                Đóng
+              </button>
             </div>
-
-            <button 
-              onClick={() => setSelectedAccount(null)}
-              className={`w-full py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg`}
-            >
-              Đóng Cửa Sổ
-            </button>
           </div>
         </div>
       )}
@@ -281,8 +284,8 @@ end`;
                 <Cpu className={`w-6 h-6 ${theme.primary} animate-pulse`} />
               </div>
               <div>
-                <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX TELEMETRY HUB</h1>
-                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>YEAGER NEXUS v30 ULTIMATE</p>
+                <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX NEXUS HUB</h1>
+                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>V32 RCON ULTIMATE EDITION</p>
               </div>
             </div>
           </div>
@@ -291,9 +294,9 @@ end`;
             {[
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar },
               { id: 'dashboard', label: 'Thống Kê Game', icon: LayoutDashboard },
+              { id: 'rcon', label: 'Điều Khiển RCON', icon: Radio },
               { id: 'generator', label: 'Lua Script Generator', icon: Code2 },
-              { id: 'webhooks', label: 'Cấu Hình Webhook', icon: Server },
-              { id: 'logs', label: 'Nhật Ký Script', icon: Terminal }
+              { id: 'webhooks', label: 'Webhook', icon: Server }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = currentTab === tab.id;
@@ -325,10 +328,6 @@ end`;
                 />
               ))}
             </div>
-
-            <button onClick={handleExportData} className="bg-[#050811] hover:bg-slate-900 border border-slate-800 text-slate-300 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow">
-              <Download className={`w-3.5 h-3.5 ${theme.primary}`} /> Export
-            </button>
           </div>
         </header>
 
@@ -340,8 +339,8 @@ end`;
                 <Lock className="w-6 h-6 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white">XÁC THỰC KẾT NỐI SCRIPT</h3>
-                <p className="text-xs text-slate-400">Nhập Key bảo mật để đồng bộ hóa dữ liệu từ Lua Script trong Roblox của bạn.</p>
+                <h3 className="text-sm font-black text-white">XÁC THỰC KẾT NỐI HỆ THỐNG</h3>
+                <p className="text-xs text-slate-400">Nhập Key bảo mật để kích hoạt mạng lưới Radar và điều khiển RCON.</p>
               </div>
             </div>
             <form onSubmit={handleConnect} className="flex items-center gap-2 w-full md:w-auto">
@@ -353,7 +352,7 @@ end`;
                 className="bg-[#030712] border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none w-full md:w-64"
               />
               <button type="submit" className={`px-5 py-2.5 ${theme.bg} text-slate-950 font-bold text-xs rounded-xl shadow-lg whitespace-nowrap`}>
-                Kết Nối
+                Xác Thực
               </button>
             </form>
           </div>
@@ -377,59 +376,39 @@ end`;
                 ))}
               </div>
 
-              <div className="flex items-center gap-3 w-full lg:w-auto">
-                <div className="relative w-full lg:w-64">
-                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
-                  <input 
-                    type="text"
-                    placeholder="Tìm nhân vật hoặc ID..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-[#030712] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none"
-                  />
-                </div>
-                <div className="flex bg-[#030712] border border-slate-800 rounded-xl p-1 shrink-0">
-                  <button 
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded-lg text-xs ${viewMode === 'grid' ? `${theme.bg} text-slate-950 font-bold` : 'text-slate-400'}`}
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                  </button>
-                  <button 
-                    onClick={() => setViewMode('table')}
-                    className={`p-2 rounded-lg text-xs ${viewMode === 'table' ? `${theme.bg} text-slate-950 font-bold` : 'text-slate-400'}`}
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              <div className="relative w-full lg:w-64">
+                <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                <input 
+                  type="text"
+                  placeholder="Tìm nhân vật..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none"
+                />
               </div>
             </div>
 
             {!activeKey ? (
               <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#0b0f19]/40 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md">
-                <Lock className="w-10 h-10 text-slate-600 animate-pulse" />
-                <h3 className="text-sm font-bold text-slate-300">CHƯA XÁC THỰC KẾT NỐI</h3>
-                <p className="text-xs text-slate-500">Nhập Key bảo mật ở trên để bắt đầu hiển thị tài khoản từ Script.</p>
+                <Lock className="w-10 h-10 text-slate-600" />
+                <h3 className="text-sm font-bold text-slate-300">VUI LÒNG NHẬP KEY XÁC THỰC</h3>
               </div>
             ) : filteredAccounts.length === 0 ? (
               <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#0b0f19]/40 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md">
                 <RefreshCw className="w-10 h-10 text-slate-500 animate-spin" />
-                <h3 className="text-sm font-bold text-slate-300">ĐANG CHỜ TÍN HIỆU TỪ SCRIPT...</h3>
-                <p className="text-xs text-slate-500">Hãy chắc chắn Lua Script trong game Roblox đang chạy và kết nối đúng API URL.</p>
+                <h3 className="text-sm font-bold text-slate-300">ĐANG CHỜ TÍN HIỆU TỪ LUA SCRIPT...</h3>
               </div>
-            ) : viewMode === 'grid' ? (
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredAccounts.map(acc => {
                   const isOnline = (Date.now() - acc.lastUpdated) < 25000;
                   return (
-                    <div key={acc.userId} className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-2xl space-y-4 hover:border-slate-700 transition group relative overflow-hidden">
-                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.glow}`}></div>
-
+                    <div key={acc.userId} className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-2xl space-y-4 hover:border-slate-700 transition relative overflow-hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3.5">
                           <img 
                             src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=150&height=150&format=png`} 
-                            className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-700 object-cover shadow-lg group-hover:scale-105 transition cursor-pointer"
+                            className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-700 object-cover shadow-lg cursor-pointer"
                             onClick={() => setSelectedAccount(acc)}
                           />
                           <div>
@@ -441,93 +420,48 @@ end`;
                             </span>
                           </div>
                         </div>
-                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black tracking-wider ${isOnline ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                        <span className={`text-[10px] px-2.5 py-1 rounded-full font-black ${isOnline ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
                           {isOnline ? '🟢 ONLINE' : '🔴 OFFLINE'}
                         </span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2.5 text-xs">
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
-                          <p className="text-slate-500 text-[9px] uppercase font-bold">Cấp Độ (Script)</p>
+                          <p className="text-slate-500 text-[9px] uppercase font-bold">Cấp Độ</p>
                           <p className="font-black text-white text-base mt-0.5">Lv.{acc.stats?.level || 1}</p>
                         </div>
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
-                          <p className="text-slate-500 text-[9px] uppercase font-bold">Tài Nguyên / Tiền</p>
+                          <p className="text-slate-500 text-[9px] uppercase font-bold">Tài Nguyên</p>
                           <p className="font-black text-emerald-400 text-base mt-0.5">${acc.stats?.currency?.toLocaleString() || 0}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[10px] text-slate-500">
-                        <span>ID: {acc.userId}</span>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-xs">
+                        <span className="text-[10px] text-slate-500">ID: {acc.userId}</span>
                         <button 
-                          onClick={() => setSelectedAccount(acc)}
-                          className={`text-xs ${theme.primary} font-bold flex items-center gap-1 hover:underline`}
+                          onClick={() => { setTargetUserId(acc.userId); setCurrentTab('rcon'); }}
+                          className={`${theme.primary} font-bold flex items-center gap-1 hover:underline text-[11px]`}
                         >
-                          <Eye className="w-3 h-3" /> Chi tiết
+                          <Radio className="w-3 h-3" /> Điều khiển RCON
                         </button>
                       </div>
                     </div>
                   );
                 })}
               </div>
-            ) : (
-              <div className="bg-[#0b0f19]/80 border border-slate-800/80 rounded-3xl p-4 overflow-x-auto shadow-2xl backdrop-blur-xl">
-                <table className="w-full text-left text-xs">
-                  <thead className="text-slate-500 uppercase text-[10px] border-b border-slate-800">
-                    <tr>
-                      <th className="pb-3 px-4">Nhân Vật</th>
-                      <th className="pb-3 px-4">Trò Chơi</th>
-                      <th className="pb-3 px-4">Cấp Độ</th>
-                      <th className="pb-3 px-4">Tài Nguyên</th>
-                      <th className="pb-3 px-4">Trạng Thái Script</th>
-                      <th className="pb-3 px-4 text-right">Hành Động</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-900">
-                    {filteredAccounts.map(acc => {
-                      const isOnline = (Date.now() - acc.lastUpdated) < 25000;
-                      return (
-                        <tr key={acc.userId} className="hover:bg-slate-900/40 transition">
-                          <td className="py-3 px-4 flex items-center gap-3">
-                            <img src={`https://www.roblox.com/headshot-thumbnail/image?userId=${acc.userId}&width=100&height=100&format=png`} className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800" />
-                            <span className="font-bold text-white">{acc.username}</span>
-                          </td>
-                          <td className="py-3 px-4 text-slate-300">{acc.gameName}</td>
-                          <td className="py-3 px-4 font-black text-white">Lv.{acc.stats?.level || 1}</td>
-                          <td className="py-3 px-4 font-black text-emerald-400">${acc.stats?.currency?.toLocaleString() || 0}</td>
-                          <td className="py-3 px-4">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${isOnline ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                              {isOnline ? 'ONLINE' : 'OFFLINE'}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <button 
-                              onClick={() => setSelectedAccount(acc)}
-                              className={`px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 ${theme.primary} font-bold`}
-                            >
-                              Xem
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
             )}
           </div>
         )}
 
-        {/* TAB 2: THỐNG KÊ CHUYÊN SÂU THEO TRÒ CHƠI */}
+        {/* TAB 2: THỐNG KÊ GAME */}
         {currentTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-4 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className={`w-5 h-5 ${theme.primary}`} />
-                <h3 className="text-sm font-black text-white uppercase tracking-wider">Phân Tích Dữ Liệu Script Theo Trò Chơi</h3>
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
-                {['Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'].map(g => (
+              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Sparkles className={`w-4 h-4 ${theme.primary}`} /> Thống Kê Chuyên Sâu
+              </h3>
+              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto">
+                {['Blox Fruits', 'AOT: Revolution', 'King Legacy'].map(g => (
                   <button
                     key={g}
                     onClick={() => setDashboardGame(g)}
@@ -543,42 +477,110 @@ end`;
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Máy Chạy {dashboardGame}</p>
+                <p className="text-[10px] uppercase font-black text-slate-500">Máy Chạy {dashboardGame}</p>
                 <p className="text-4xl font-black text-white">{gameSpecificMetrics.count}</p>
-                <p className={`text-xs ${theme.primary} font-bold`}>🎮 Đang gửi dữ liệu</p>
               </div>
-
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Cấp Độ Cao Nhất</p>
+                <p className="text-[10px] uppercase font-black text-slate-500">Cấp Độ Cao Nhất</p>
                 <p className={`text-4xl font-black ${theme.primary}`}>Lv.{gameSpecificMetrics.maxLv}</p>
-                <p className="text-xs text-slate-400">Từ script trong game</p>
               </div>
-
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">Tổng Tiền / Tài Nguyên</p>
+                <p className="text-[10px] uppercase font-black text-slate-500">Tổng Tiền / Tài Nguyên</p>
                 <p className="text-4xl font-black text-emerald-400">${gameSpecificMetrics.totalCurr.toLocaleString()}</p>
-                <p className="text-xs text-slate-400">Cập nhật trực tiếp</p>
               </div>
-
               <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-xl space-y-2">
-                <p className="text-[10px] uppercase font-black tracking-wider text-slate-500">{gameSpecificMetrics.subLabel1}</p>
+                <p className="text-[10px] uppercase font-black text-slate-500">{gameSpecificMetrics.subLabel1}</p>
                 <p className="text-4xl font-black text-cyan-400">{gameSpecificMetrics.subVal1}</p>
-                <p className="text-xs text-slate-400">Thông số: {gameSpecificMetrics.subVal2}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 3: LUA SCRIPT GENERATOR */}
+        {/* TAB 3: ĐIỀU KHIỂN RCON (MỚI) */}
+        {currentTab === 'rcon' && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center ${theme.primary}`}>
+                  <Radio className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Hệ Thống Điều Khiển RCON Trực Tiếp Xuống Script</h3>
+                  <p className="text-xs text-slate-400">Gửi lệnh hành động trực tiếp từ trang web đến các tài khoản Roblox đang chạy script.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-300 uppercase">Nhập User ID Mục Tiêu</label>
+                  <input 
+                    type="text"
+                    placeholder="VD: 123456789..."
+                    value={targetUserId}
+                    onChange={(e) => setTargetUserId(e.target.value)}
+                    className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-300 uppercase">Chọn Tài Khoản Nhanh</label>
+                  <select 
+                    onChange={(e) => setTargetUserId(e.target.value)}
+                    value={targetUserId}
+                    className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                  >
+                    <option value="">-- Chọn nhân vật từ danh sách online --</option>
+                    {accounts.map(acc => (
+                      <option key={acc.userId} value={acc.userId}>{acc.username} (Lv.{acc.stats?.level})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <label className="text-xs font-bold text-slate-300 uppercase">Gửi Thông Báo Vào Màn Hình Game (Notification)</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    placeholder="Nhập nội dung thông báo hiển thị trong game Roblox..."
+                    value={customNotification}
+                    onChange={(e) => setCustomNotification(e.target.value)}
+                    className="flex-1 bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                  />
+                  <button 
+                    onClick={() => sendRconCommand('NOTIFY', { message: customNotification || 'Xin chào từ Yeager Hub!' })}
+                    className={`px-6 py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-2`}
+                  >
+                    <Send className="w-4 h-4" /> Gửi Thông Báo
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-900 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-white">Buộc Reconnect (Tải Lại Server)</p>
+                  <p className="text-[10px] text-slate-500">Lệnh này sẽ khiến client Roblox tự động kết nối lại game ngay lập tức.</p>
+                </div>
+                <button 
+                  onClick={() => sendRconCommand('RECONNECT')}
+                  className="px-5 py-2.5 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-xl transition"
+                >
+                  Buộc Reconnect
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: LUA SCRIPT GENERATOR */}
         {currentTab === 'generator' && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Đồng Bộ Trực Tiếp
+                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Hỗ Trợ RCON v32
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Đoạn code này đã được tối ưu hóa để gửi đúng cấu trúc dữ liệu lên trang web.</p>
+                  <p className="text-xs text-slate-400 mt-1">Script này vừa gửi telemetry vừa kiểm tra và thực thi các lệnh từ Web gửi xuống.</p>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(luaScriptTemplate)}
@@ -596,61 +598,29 @@ end`;
           </div>
         )}
 
-        {/* TAB 4: CẤU HÌNH DISCORD WEBHOOK */}
+        {/* TAB 5: WEBHOOKS */}
         {currentTab === 'webhooks' && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
               <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <Bell className={`w-4 h-4 ${theme.primary}`} /> Tích Hợp Discord Webhook
+                <Bell className={`w-4 h-4 ${theme.primary}`} /> Cấu Hình Discord Webhook
               </h3>
-              <p className="text-xs text-slate-400">Nhập Webhook URL từ kênh Discord để nhận thông báo tự động từ hệ thống script.</p>
-
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-slate-300 uppercase">Discord Webhook URL</label>
-                <input 
-                  type="text"
-                  placeholder="https://discord.com/api/webhooks/..."
-                  value={webhookUrl}
-                  onChange={(e) => setWebhookUrl(e.target.value)}
-                  className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-slate-400 font-bold">Trạng thái: {webhookEnabled ? '🟢 Đang bật' : '🔴 Đang tắt'}</span>
-                <button 
-                  onClick={() => {
-                    setWebhookEnabled(!webhookEnabled);
-                    showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã kích hoạt Webhook thành công!');
-                  }}
-                  className={`px-5 py-2.5 ${webhookEnabled ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : `${theme.bg} text-slate-950`} font-bold text-xs rounded-xl shadow-lg`}
-                >
-                  {webhookEnabled ? 'Tắt Webhook' : 'Kích Hoạt Webhook'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: NHẬT KÝ SCRIPT (LOGS) */}
-        {currentTab === 'logs' && (
-          <div className="space-y-4 animate-fade-in">
-            <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
-              <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wider">
-                <Terminal className={`w-4 h-4 ${theme.primary}`} /> Nhật Ký Tín Hiệu Từ Script Roblox
-              </h3>
-              <div className="bg-[#030712] border border-slate-900 rounded-2xl p-4 h-96 overflow-y-auto space-y-2 font-mono text-xs shadow-inner">
-                {activityLogs.length === 0 ? (
-                  <p className="text-slate-600 text-center py-32">Chưa nhận được gói tin telemetry nào từ script.</p>
-                ) : (
-                  activityLogs.map((log, idx) => (
-                    <div key={idx} className="flex gap-4 text-slate-300 border-b border-slate-900/60 pb-2">
-                      <span className="text-slate-500">[{log.time}]</span>
-                      <span className="flex-1 text-cyan-300">{log.text}</span>
-                    </div>
-                  ))
-                )}
-              </div>
+              <input 
+                type="text"
+                placeholder="https://discord.com/api/webhooks/..."
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+              />
+              <button 
+                onClick={() => {
+                  setWebhookEnabled(!webhookEnabled);
+                  showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã kích hoạt Webhook!');
+                }}
+                className={`px-5 py-2.5 ${webhookEnabled ? 'bg-rose-500/20 text-rose-400' : `${theme.bg} text-slate-950`} font-bold text-xs rounded-xl shadow-lg`}
+              >
+                {webhookEnabled ? 'Tắt Webhook' : 'Bật Webhook'}
+              </button>
             </div>
           </div>
         )}
