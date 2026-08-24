@@ -1,82 +1,51 @@
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
-let globalAccounts = [
-  {
-    userId: 12345678,
-    username: "Player_VIP_01",
-    gameName: "Blox Fruits",
-    lastUpdated: Date.now(),
-    stats: { 
-      level: 2550, 
-      currency: 45000000, 
-      bounty: 3500000,
-      currentFruit: "Leopard / Kitsune" 
-    },
-    inventory: { 
-      weapons: ["Cursed Dual Katana", "Soul Guitar", "Dark Blade", "Tushita"],
-      accessories: ["Valkyrie Helm", "Leviathan Shield"]
-    },
-    serverInfo: { jobId: "job_a1b2c3_roblox_server", playersCount: 12 }
-  }
-];
-
-let systemLogs = [
-  { time: "Hệ Thống", text: "Khởi động Roblox Telemetry Hub v14 thành công." }
-];
-
-const VALID_KEYS = ["yeager2026", "admin123", "vipkey"];
+// Khởi tạo bộ nhớ tạm toàn cục cho Serverless
+if (!globalThis.nexusStore) {
+  globalThis.nexusStore = {
+    accounts: new Map()
+  };
+}
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
-
-    if (!key || !VALID_KEYS.includes(key)) {
-      return NextResponse.json({ error: 'Unauthorized: Khóa bảo mật không hợp lệ!' }, { status: 401 });
-    }
-
+    const accountsList = Array.from(globalThis.nexusStore.accounts.values());
     return NextResponse.json({
       success: true,
-      serverTime: Date.now(),
-      accounts: globalAccounts,
-      logs: systemLogs
+      accounts: accountsList,
+      serverTime: Date.now()
     });
   } catch (err) {
-    return NextResponse.json({ error: 'Lỗi server GET: ' + err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { key, action, accountData } = body;
+    const { key, userId, username, gameName, stats, inventory, lastUpdated } = body;
 
-    if (!key || !VALID_KEYS.includes(key)) {
-      return NextResponse.json({ error: 'Unauthorized: Sai khóa xác thực!' }, { status: 401 });
+    if (!userId || !username) {
+      return NextResponse.json({ success: false, error: 'Missing userId or username' }, { status: 400 });
     }
 
-    if (action === 'update_account' && accountData) {
-      const index = globalAccounts.findIndex(acc => acc.userId === accountData.userId);
-      const processedAccount = { ...accountData, lastUpdated: Date.now() };
+    // Lưu trữ dữ liệu telemetry chi tiết của tài khoản
+    const accountData = {
+      userId,
+      username,
+      gameName: gameName || 'Blox Fruits',
+      stats: stats || { level: 1, currency: 0 },
+      inventory: inventory || { weapons: [] },
+      lastUpdated: lastUpdated || Date.now()
+    };
 
-      if (index !== -1) {
-        globalAccounts[index] = processedAccount;
-      } else {
-        globalAccounts.push(processedAccount);
-      }
+    globalThis.nexusStore.accounts.set(String(userId), accountData);
 
-      systemLogs.unshift({
-        time: new Date().toLocaleTimeString(),
-        text: `Đồng bộ dữ liệu tài khoản [${accountData.username}] - Lv.${accountData.stats?.level || 1}`
-      });
-
-      return NextResponse.json({ success: true, message: 'Cập nhật dữ liệu Roblox thành công!' });
-    }
-
-    return NextResponse.json({ success: false, message: 'Action không hợp lệ!' }, { status: 400 });
+    return NextResponse.json({ 
+      success: true, 
+      message: `Telemetry synced successfully for ${username}` 
+    });
   } catch (err) {
-    return NextResponse.json({ error: 'Lỗi xử lý POST: ' + err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
