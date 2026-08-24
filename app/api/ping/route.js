@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Bắt buộc Next.js chạy ở chế độ Dynamic (tránh lỗi build trên Vercel)
+export const dynamic = 'force-dynamic';
+
 let globalAccounts = [
   {
     userId: 12345678,
@@ -12,7 +15,7 @@ let globalAccounts = [
 ];
 
 let systemLogs = [
-  { time: "Hệ Thống", text: "Khởi động Yeager Pannel Enterprise v11 Backend thành công." }
+  { time: "Hệ Thống", text: "Khởi động Yeager Pannel Enterprise Backend thành công." }
 ];
 
 const VALID_KEYS = ["yeager2026", "admin123", "vipkey"];
