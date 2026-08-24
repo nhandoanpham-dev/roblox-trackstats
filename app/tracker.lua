@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v33) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v34) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -9,6 +9,7 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local VirtualUser = game:GetService("VirtualUser")
 
 local API_URL = "https://aotwing-dusky.vercel.app/api/ping?userId=" .. LocalPlayer.UserId
 local ACCESS_KEY = "yeager2026"
@@ -70,7 +71,6 @@ local TopCorner = Instance.new("UICorner")
 TopCorner.CornerRadius = UDim.new(0, 12)
 TopCorner.Parent = TopBar
 
--- Sửa lỗi góc bo top bar
 local FixTop = Instance.new("Frame")
 FixTop.Size = UDim2.new(1, 0, 0, 10)
 FixTop.Position = UDim2.new(0, 0, 1, -10)
@@ -117,12 +117,10 @@ Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 25)
 Sidebar.BorderSizePixel = 0
 Sidebar.Parent = MainFrame
 
--- Container chứa nội dung các Tab bên phải
 local Container = Instance.new("Folder")
 Container.Name = "TabContainers"
 Container.Parent = MainFrame
 
--- Tạo các Tab Content (Trang nội dung)
 local tabs = {}
 local function createTabContent(name)
     local scrolling = Instance.new("ScrollingFrame")
@@ -150,9 +148,8 @@ createTabContent("Farm")
 createTabContent("Combat")
 createTabContent("Settings")
 
-tabs["Home"].Visible = true -- Mặc định mở trang chủ
+tabs["Home"].Visible = true
 
--- Hàm tạo nút chuyển Tab ở Sidebar
 local function createTabButton(name, text, posY)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -20, 0, 38)
@@ -184,7 +181,6 @@ createTabButton("Farm", "🌾 Auto Farm", 60)
 createTabButton("Combat", "⚔️ Đánh & Boss", 105)
 createTabButton("Settings", "⚙️ Cài Đặt", 150)
 
--- Hàm tạo Toggle (Bật/Tắt tính năng) trong các Tab
 local function createToggle(tabName, titleText, callback)
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -10, 0, 42)
@@ -242,10 +238,55 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- TÍCH HỢP TÍNH NĂNG THẬT (AUTO FARM & WEB SYNC)
+-- HỆ THỐNG AUTO FARM & ĐÁNH QUÁI THỰC TẾ (NÂNG CẤP TẤN CÔNG)
 -- ===================================================================
 getgenv().AutoFarm = false
 getgenv().FastAttack = false
+
+-- Tiến trình Auto Farm (Dịch chuyển + Tự cầm vũ khí + Tấn công liên tục)
+task.spawn(function()
+    while task.wait(0.1) do
+        if getgenv().AutoFarm then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                    local rootPart = char.HumanoidRootPart
+                    local humanoid = char.Humanoid
+                    
+                    -- 1. Tự động cầm vũ khí từ trong balo (Backpack) lên tay
+                    local activeTool = char:FindFirstChildOfClass("Tool")
+                    if not activeTool then
+                        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+                            if item:IsA("Tool") then
+                                humanoid:EquipTool(item)
+                                break
+                            end
+                        end
+                    else
+                        -- 2. Kích hoạt đòn đánh liên tục của vũ khí
+                        activeTool:Activate()
+                    end
+                    
+                    -- Chống afk / click chuột giả lập đánh quái
+                    VirtualUser:Button1Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
+                    
+                    -- 3. Tìm quái gần nhất và bay tới đầu quái để đánh
+                    if Workspace:FindFirstChild("Enemies") then
+                        for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
+                            if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+                                if getgenv().AutoFarm then
+                                    -- Bay bám sát phía trên hoặc trước mặt quái để chém trúng
+                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 10, 3)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 -- Tab Home Content
 local HomeInfo = Instance.new("TextLabel")
@@ -255,40 +296,24 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v33 (Ready)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v34 (Active Attack)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm Level (Tự động cày cấp)", function(state)
+createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đánh quái)", function(state)
     getgenv().AutoFarm = state
-    task.spawn(function()
-        while getgenv().AutoFarm do
-            task.wait(0.2)
-            pcall(function()
-                -- Logic Auto Farm: Dịch chuyển tới quái và tấn công
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    for _, v in pairs(Workspace.Enemies:GetChildren()) do
-                        if v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                            if getgenv().AutoFarm then
-                                char.HumanoidRootPart.CFrame = v.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end)
 end)
 
-createToggle("Combat", "⚔️ Fast Attack (Đánh siêu tốc)", function(state)
+createToggle("Combat", "⚔️ Fast Attack (Tấn công siêu tốc)", function(state)
     getgenv().FastAttack = state
     task.spawn(function()
         while getgenv().FastAttack do
-            task.wait(0.1)
+            task.wait(0.05)
             pcall(function()
                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                if tool then tool:Activate() end
             end)
         end
     end)
@@ -309,7 +334,7 @@ RejoinBtn.MouseButton1Click:Connect(function()
     game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
 end)
 
--- Tiến trình ngầm đồng bộ Web Dashboard (giúp trang web của bạn hiện đúng level/tiền)
+-- Tiến trình ngầm đồng bộ Web Dashboard
 if Req then
     task.spawn(function()
         while task.wait(3) do
@@ -355,4 +380,4 @@ if Req then
     end)
 end
 
-print("Yeager Nexus Ultra Hub Loaded Successfully!")
+print("Yeager Nexus HUD Loaded Successfully!")
