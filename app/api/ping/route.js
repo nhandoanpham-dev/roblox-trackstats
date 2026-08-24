@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// Bắt buộc Next.js chạy ở chế độ Dynamic (tránh lỗi build trên Vercel)
 export const dynamic = 'force-dynamic';
 
 let globalAccounts = [
@@ -9,13 +8,22 @@ let globalAccounts = [
     username: "Player_VIP_01",
     gameName: "Blox Fruits",
     lastUpdated: Date.now(),
-    stats: { level: 2550, currency: 45000000, premiumCurrency: 12500, bounty: 3500000 },
-    inventory: { weapons: ["Cursed Dual Katana", "Soul Guitar", "Dark Blade", "Tushita"] }
+    stats: { 
+      level: 2550, 
+      currency: 45000000, 
+      bounty: 3500000,
+      currentFruit: "Leopard / Kitsune" 
+    },
+    inventory: { 
+      weapons: ["Cursed Dual Katana", "Soul Guitar", "Dark Blade", "Tushita"],
+      accessories: ["Valkyrie Helm", "Leviathan Shield"]
+    },
+    serverInfo: { jobId: "job_a1b2c3_roblox_server", playersCount: 12 }
   }
 ];
 
 let systemLogs = [
-  { time: "Hệ Thống", text: "Khởi động Yeager Pannel Enterprise Backend thành công." }
+  { time: "Hệ Thống", text: "Khởi động Roblox Telemetry Hub v14 thành công." }
 ];
 
 const VALID_KEYS = ["yeager2026", "admin123", "vipkey"];
@@ -61,10 +69,10 @@ export async function POST(request) {
 
       systemLogs.unshift({
         time: new Date().toLocaleTimeString(),
-        text: `Đồng bộ thành công tài khoản [${accountData.username}]`
+        text: `Đồng bộ dữ liệu tài khoản [${accountData.username}] - Lv.${accountData.stats?.level || 1}`
       });
 
-      return NextResponse.json({ success: true, message: 'Cập nhật thành công!' });
+      return NextResponse.json({ success: true, message: 'Cập nhật dữ liệu Roblox thành công!' });
     }
 
     return NextResponse.json({ success: false, message: 'Action không hợp lệ!' }, { status: 400 });
