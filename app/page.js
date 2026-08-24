@@ -6,7 +6,7 @@ import {
   Download, Palette, Activity, Music, Play, Pause, SkipForward,
   Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu,
   Bell, Code2, SlidersHorizontal, ExternalLink,
-  Eye, Layers, Copy, Check, Server, Zap, Shield, Sparkles, Send, Radio
+  Eye, Layers, Copy, Check, Server, Zap, Shield, Sparkles, Send, Radio, Globe
 } from 'lucide-react';
 
 export default function YeagerRobloxNexus() {
@@ -14,7 +14,6 @@ export default function YeagerRobloxNexus() {
   const [activeKey, setActiveKey] = useState('');
   const [accounts, setAccounts] = useState([]);
   const [currentTab, setCurrentTab] = useState('radar');
-  const [viewMode, setViewMode] = useState('grid');
   
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [selectedGame, setSelectedGame] = useState('ALL');
@@ -27,12 +26,14 @@ export default function YeagerRobloxNexus() {
   const [toast, setToast] = useState(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  // RCON Remote Commands State
+  // RCON & Broadcast State
   const [targetUserId, setTargetUserId] = useState('');
   const [customNotification, setCustomNotification] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
 
+  // Webhook State
   const [webhookUrl, setWebhookUrl] = useState('');
-  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState(false);
 
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -43,10 +44,10 @@ export default function YeagerRobloxNexus() {
   ];
 
   const colorThemes = {
-    cyan: { primary: 'text-cyan-400', bg: 'bg-cyan-500', border: 'border-cyan-500/30', glow: 'from-cyan-500/20 to-blue-500/0', badge: 'bg-cyan-500/10 text-cyan-300' },
-    amber: { primary: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500/30', glow: 'from-amber-500/20 to-orange-500/0', badge: 'bg-amber-500/10 text-amber-300' },
-    purple: { primary: 'text-purple-400', bg: 'bg-purple-500', border: 'border-purple-500/30', glow: 'from-purple-500/20 to-pink-500/0', badge: 'bg-purple-500/10 text-purple-300' },
-    emerald: { primary: 'text-emerald-400', bg: 'bg-emerald-500', border: 'border-emerald-500/30', glow: 'from-emerald-500/20 to-teal-500/0', badge: 'bg-emerald-500/10 text-emerald-300' },
+    cyan: { primary: 'text-cyan-400', bg: 'bg-cyan-500', border: 'border-cyan-500/30', glow: 'from-cyan-500/20 to-blue-500/0' },
+    amber: { primary: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500/30', glow: 'from-amber-500/20 to-orange-500/0' },
+    purple: { primary: 'text-purple-400', bg: 'bg-purple-500', border: 'border-purple-500/30', glow: 'from-purple-500/20 to-pink-500/0' },
+    emerald: { primary: 'text-emerald-400', bg: 'bg-emerald-500', border: 'border-emerald-500/30', glow: 'from-emerald-500/20 to-teal-500/0' },
   };
   const theme = colorThemes[accentColor];
 
@@ -117,6 +118,42 @@ export default function YeagerRobloxNexus() {
     }
   };
 
+  const sendBroadcastCommand = async (commandType, payloadData = {}) => {
+    try {
+      const res = await fetch('/api/ping', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'broadcast', command: commandType, payload: payloadData })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Đã phát lệnh Broadcast [${commandType}] tới toàn bộ máy!`);
+        setBroadcastMessage('');
+      } else {
+        showToast(`Lỗi: ${data.error}`);
+      }
+    } catch (err) {
+      showToast('Không thể gửi lệnh Broadcast!');
+    }
+  };
+
+  const saveWebhookConfig = async () => {
+    try {
+      const res = await fetch('/api/ping', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_webhook', webhookUrl })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWebhookStatus(true);
+        showToast('Đã lưu và kích hoạt Discord Webhook thành công!');
+      }
+    } catch (err) {
+      showToast('Lỗi lưu cấu hình Webhook!');
+    }
+  };
+
   const gameCategories = ['ALL', 'Blox Fruits', 'AOT: Revolution', 'King Legacy', 'Fisch'];
 
   const gameSpecificMetrics = useMemo(() => {
@@ -144,14 +181,13 @@ export default function YeagerRobloxNexus() {
     });
   }, [accounts, selectedGame, searchQuery]);
 
-  // Lua Script Nâng Cấp tích hợp cả Telemetry & Xử lý Lệnh RCON từ Web
-  const luaScriptTemplate = `-- Yeager Roblox Nexus Telemetry & RCON Script v32
+  const luaScriptTemplate = `-- Yeager Roblox Nexus v33 Ultimate Telemetry & Broadcast Script
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
-local API_URL = "https://aotwing-dusky.vercel.app//api/ping"
+local API_URL = "https://aotwing-dusky.vercel.app/api/ping"
 local ACCESS_KEY = "${activeKey || 'yeager2026'}"
 
 print("Yeager Nexus Client Started for: " .. LocalPlayer.Name)
@@ -187,9 +223,9 @@ while task.wait(3) do
                 for _, cmdObj in ipairs(decoded.commands) do
                     if cmdObj.command == "NOTIFY" then
                         StarterGui:SetCore("SendNotification", {
-                            Title = "Yeager Nexus Admin",
-                            Text = cmdObj.payload.message or "Lệnh từ Web Dashboard!",
-                            Duration = 5
+                            Title = cmdObj.payload.title or "Yeager Nexus Hub",
+                            Text = cmdObj.payload.message or "Lệnh toàn hệ thống!",
+                            Duration = 6
                         })
                     elseif cmdObj.command == "RECONNECT" then
                         game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
@@ -203,7 +239,7 @@ end`;
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedCode(true);
-    showToast('Đã sao chép Lua Script nâng cao vào clipboard!');
+    showToast('Đã sao chép Lua Script vào clipboard!');
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
@@ -223,7 +259,7 @@ end`;
       {/* ACCOUNT DETAILS MODAL */}
       {selectedAccount && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0b0f19] border border-slate-700/80 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5 animate-fade-in relative">
+          <div className="bg-[#0b0f19] border border-slate-700/80 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5 relative">
             <button 
               onClick={() => setSelectedAccount(null)}
               className="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 w-8 h-8 rounded-xl flex items-center justify-center"
@@ -285,7 +321,7 @@ end`;
               </div>
               <div>
                 <h1 className="text-sm font-black text-white tracking-widest uppercase">ROBLOX NEXUS HUB</h1>
-                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>V32 RCON ULTIMATE EDITION</p>
+                <p className={`text-[10px] ${theme.primary} font-bold tracking-wider`}>V33 GLOBAL BROADCAST EDITION</p>
               </div>
             </div>
           </div>
@@ -294,9 +330,9 @@ end`;
             {[
               { id: 'radar', label: 'Radar Trực Tuyến', icon: Radar },
               { id: 'dashboard', label: 'Thống Kê Game', icon: LayoutDashboard },
-              { id: 'rcon', label: 'Điều Khiển RCON', icon: Radio },
-              { id: 'generator', label: 'Lua Script Generator', icon: Code2 },
-              { id: 'webhooks', label: 'Webhook', icon: Server }
+              { id: 'rcon', label: 'Điều Khiển & Broadcast', icon: Radio },
+              { id: 'generator', label: 'Lua Script v33', icon: Code2 },
+              { id: 'webhooks', label: 'Discord Webhook', icon: Server }
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = currentTab === tab.id;
@@ -340,7 +376,7 @@ end`;
               </div>
               <div>
                 <h3 className="text-sm font-black text-white">XÁC THỰC KẾT NỐI HỆ THỐNG</h3>
-                <p className="text-xs text-slate-400">Nhập Key bảo mật để kích hoạt mạng lưới Radar và điều khiển RCON.</p>
+                <p className="text-xs text-slate-400">Nhập Key bảo mật để kích hoạt mạng lưới Radar và điều khiển toàn cục.</p>
               </div>
             </div>
             <form onSubmit={handleConnect} className="flex items-center gap-2 w-full md:w-auto">
@@ -496,17 +532,48 @@ end`;
           </div>
         )}
 
-        {/* TAB 3: ĐIỀU KHIỂN RCON (MỚI) */}
+        {/* TAB 3: ĐIỀU KHIỂN & BROADCAST TOÀN CỤC */}
         {currentTab === 'rcon' && (
           <div className="space-y-6 animate-fade-in">
+            
+            {/* GLOBAL BROADCAST SECTION */}
+            <div className="bg-gradient-to-r from-[#0b0f19] to-[#0f172a] border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center ${theme.primary}`}>
+                  <Globe className="w-5 h-5 animate-spin" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Phát Lệnh Toàn Cục (Global Broadcast)</h3>
+                  <p className="text-xs text-slate-400">Gửi lệnh đồng thời đến tất cả các tài khoản Roblox đang trực tuyến trên mạng lưới.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <input 
+                  type="text"
+                  placeholder="Nhập nội dung thông báo broadcast đến tất cả máy..."
+                  value={broadcastMessage}
+                  onChange={(e) => setBroadcastMessage(e.target.value)}
+                  className="flex-1 bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                />
+                <button 
+                  onClick={() => sendBroadcastCommand('NOTIFY', { title: 'Broadcast Toàn Cục', message: broadcastMessage || 'Thông báo từ Yeager Hub!' })}
+                  className={`px-6 py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-2`}
+                >
+                  <Send className="w-4 h-4" /> Phát Tội Toàn Bộ
+                </button>
+              </div>
+            </div>
+
+            {/* SINGLE RCON TARGET */}
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center ${theme.primary}`}>
                   <Radio className="w-5 h-5 animate-pulse" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Hệ Thống Điều Khiển RCON Trực Tiếp Xuống Script</h3>
-                  <p className="text-xs text-slate-400">Gửi lệnh hành động trực tiếp từ trang web đến các tài khoản Roblox đang chạy script.</p>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Điều Khiển Đơn Lẻ (Single RCON)</h3>
+                  <p className="text-xs text-slate-400">Gửi lệnh hành động trực tiếp đến một tài khoản Roblox cụ thể.</p>
                 </div>
               </div>
 
@@ -537,11 +604,11 @@ end`;
               </div>
 
               <div className="space-y-3 pt-2">
-                <label className="text-xs font-bold text-slate-300 uppercase">Gửi Thông Báo Vào Màn Hình Game (Notification)</label>
+                <label className="text-xs font-bold text-slate-300 uppercase">Gửi Thông Báo Riêng</label>
                 <div className="flex gap-2">
                   <input 
                     type="text"
-                    placeholder="Nhập nội dung thông báo hiển thị trong game Roblox..."
+                    placeholder="Nhập nội dung thông báo..."
                     value={customNotification}
                     onChange={(e) => setCustomNotification(e.target.value)}
                     className="flex-1 bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
@@ -550,7 +617,7 @@ end`;
                     onClick={() => sendRconCommand('NOTIFY', { message: customNotification || 'Xin chào từ Yeager Hub!' })}
                     className={`px-6 py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center gap-2`}
                   >
-                    <Send className="w-4 h-4" /> Gửi Thông Báo
+                    <Send className="w-4 h-4" /> Gửi
                   </button>
                 </div>
               </div>
@@ -558,7 +625,7 @@ end`;
               <div className="pt-4 border-t border-slate-900 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-white">Buộc Reconnect (Tải Lại Server)</p>
-                  <p className="text-[10px] text-slate-500">Lệnh này sẽ khiến client Roblox tự động kết nối lại game ngay lập tức.</p>
+                  <p className="text-[10px] text-slate-500">Lệnh này khiến client Roblox tự động reconnect ngay lập tức.</p>
                 </div>
                 <button 
                   onClick={() => sendRconCommand('RECONNECT')}
@@ -578,9 +645,9 @@ end`;
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Hỗ Trợ RCON v32
+                    <Code2 className={`w-4 h-4 ${theme.primary}`} /> Lua Script Hỗ Trợ Broadcast v33
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Script này vừa gửi telemetry vừa kiểm tra và thực thi các lệnh từ Web gửi xuống.</p>
+                  <p className="text-xs text-slate-400 mt-1">Script tích hợp lắng nghe cả lệnh đơn lẻ lẫn lệnh broadcast toàn cục.</p>
                 </div>
                 <button 
                   onClick={() => copyToClipboard(luaScriptTemplate)}
@@ -602,25 +669,38 @@ end`;
         {currentTab === 'webhooks' && (
           <div className="space-y-6 animate-fade-in">
             <div className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-6 rounded-3xl shadow-2xl space-y-5">
-              <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-                <Bell className={`w-4 h-4 ${theme.primary}`} /> Cấu Hình Discord Webhook
-              </h3>
-              <input 
-                type="text"
-                placeholder="https://discord.com/api/webhooks/..."
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
-              />
-              <button 
-                onClick={() => {
-                  setWebhookEnabled(!webhookEnabled);
-                  showToast(webhookEnabled ? 'Đã tắt Webhook!' : 'Đã kích hoạt Webhook!');
-                }}
-                className={`px-5 py-2.5 ${webhookEnabled ? 'bg-rose-500/20 text-rose-400' : `${theme.bg} text-slate-950`} font-bold text-xs rounded-xl shadow-lg`}
-              >
-                {webhookEnabled ? 'Tắt Webhook' : 'Bật Webhook'}
-              </button>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center ${theme.primary}`}>
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Cấu Hình Discord Webhook Tự Động</h3>
+                  <p className="text-xs text-slate-400">Hệ thống sẽ tự động bắn Embed thông báo sang kênh Discord khi có máy kết nối.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300 uppercase">Discord Webhook URL</label>
+                <input 
+                  type="text"
+                  placeholder="https://discord.com/api/webhooks/..."
+                  value={webhookUrl}
+                  onChange={(e) => setWebhookUrl(e.target.value)}
+                  className="w-full bg-[#030712] border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <span className={`text-xs font-bold ${webhookStatus ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {webhookStatus ? '🟢 Webhook Đang Hoạt Động' : '⚪ Chưa lưu cấu hình'}
+                </span>
+                <button 
+                  onClick={saveWebhookConfig}
+                  className={`px-6 py-3 ${theme.bg} text-slate-950 font-black text-xs rounded-xl shadow-lg`}
+                >
+                  Lưu & Kích Hoạt Webhook
+                </button>
+              </div>
             </div>
           </div>
         )}
