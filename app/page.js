@@ -5,10 +5,10 @@ import {
   Key, ShieldCheck, Gamepad2, Search, 
   Swords, TrendingUp, Zap, RefreshCw, Lock, CheckCircle2, 
   Download, Filter, ArrowUpDown, Server, Radio, Play, Pause, SkipForward, Music,
-  Bell, Terminal, Share2, Palette, Activity
+  Bell, Terminal, Share2, Palette, Activity, Clock, Cpu, ShieldAlert
 } from 'lucide-react';
 
-export default function YeagerNexusV9() {
+export default function YeagerNexusV10() {
   const [accessKey, setAccessKey] = useState('');
   const [activeKey, setActiveKey] = useState('');
   const [accounts, setAccounts] = useState([]);
@@ -21,10 +21,12 @@ export default function YeagerNexusV9() {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Tính năng mới v9.0: Custom Accent Color & Activity Logs & Discord Webhook
-  const [accentColor, setAccentColor] = useState('amber'); // amber, cyan, purple, emerald
+  // Tính năng v10.0 Enterprise
+  const [accentColor, setAccentColor] = useState('amber');
+  const [syncInterval, setSyncInterval] = useState(3500);
   const [activityLogs, setActivityLogs] = useState([]);
   const [showWebhookModal, setShowWebhookModal] = useState(false);
+  const [showLogsModal, setShowLogsModal] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookMsg, setWebhookMsg] = useState('');
 
@@ -37,7 +39,7 @@ export default function YeagerNexusV9() {
     { title: "Yeager's Theme", artist: "Epic Orchestral Lofi" }
   ];
 
-  // Màu sắc chủ đạo linh hoạt
+  // Bảng màu chủ đạo
   const colorThemes = {
     amber: { primary: 'text-amber-400', bg: 'bg-amber-500', border: 'border-amber-500/50', glow: 'bg-amber-500/5' },
     cyan: { primary: 'text-cyan-400', bg: 'bg-cyan-500', border: 'border-cyan-500/50', glow: 'bg-cyan-500/5' },
@@ -46,7 +48,7 @@ export default function YeagerNexusV9() {
   };
   const theme = colorThemes[accentColor];
 
-  // Đồng bộ Real-time dữ liệu từ Lua Tracker
+  // Đồng bộ Real-time từ Lua Tracker
   useEffect(() => {
     if (!activeKey) return;
     let isMounted = true;
@@ -57,10 +59,10 @@ export default function YeagerNexusV9() {
         const data = await res.json();
         if (isMounted && data.accounts) {
           setAccounts(data.accounts);
-          // Ghi nhận log hoạt động mẫu
+          const timeNow = new Date().toLocaleTimeString();
           setActivityLogs(prev => [
-            { time: new Date().toLocaleTimeString(), text: `Đã đồng bộ thành công ${data.accounts.length} tài khoản trực tuyến.` },
-            ...prev.slice(0, 15)
+            { time: timeNow, text: `Đồng bộ thành công ${data.accounts.length} thiết bị trực tuyến.` },
+            ...prev.slice(0, 25)
           ]);
           if (selectedAcc) {
             const updated = data.accounts.find(a => a.userId === selectedAcc.userId);
@@ -68,17 +70,17 @@ export default function YeagerNexusV9() {
           }
         }
       } catch (err) {
-        console.error("Lỗi đồng bộ hệ thống:", err);
+        console.error("Lỗi đồng bộ API:", err);
       }
     };
 
     fetchSync();
-    const interval = setInterval(fetchSync, 3500);
+    const interval = setInterval(fetchSync, syncInterval);
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [activeKey, selectedAcc]);
+  }, [activeKey, selectedAcc, syncInterval]);
 
   const handleConnect = (e) => {
     e.preventDefault();
@@ -87,7 +89,7 @@ export default function YeagerNexusV9() {
       setTimeout(() => {
         setActiveKey(accessKey.trim());
         setLoading(false);
-        showToast('Kết nối hệ thống Radar thành công!');
+        showToast('Kết nối hệ thống Radar v10 thành công!');
       }, 500);
     }
   };
@@ -101,29 +103,31 @@ export default function YeagerNexusV9() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(accounts, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `YeagerNexus_v9_Backup_${Date.now()}.json`);
+    downloadAnchor.setAttribute("download", `YeagerNexus_v10_Enterprise_${Date.now()}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-    showToast('Đã xuất file dữ liệu thành công!');
+    showToast('Đã xuất toàn bộ dữ liệu hệ thống!');
   };
 
   const sendDiscordWebhook = async () => {
     if (!webhookUrl) {
-      showToast('Vui lòng nhập Link Webhook Discord!');
+      showToast('Vui lòng nhập Webhook URL!');
       return;
     }
     try {
       await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: `🛡️ **YEAGER PANNEL NOTIFICATION**\n> ${webhookMsg || 'Hệ thống radar ghi nhận trạng thái hoạt động trực tuyến ổn định.'}` })
+        body: JSON.stringify({ 
+          content: `🛡️ **YEAGER PANNEL ENTERPRISE v10**\n> ${webhookMsg || 'Hệ thống radar đang hoạt động ổn định và bảo mật.'}` 
+        })
       });
-      showToast('Đã bắn thông báo lên Discord thành công!');
+      showToast('Đã gửi thông báo lên Discord thành công!');
       setShowWebhookModal(false);
       setWebhookMsg('');
     } catch (err) {
-      showToast('Lỗi gửi Webhook Discord!');
+      showToast('Lỗi kết nối Webhook Discord!');
     }
   };
 
@@ -134,7 +138,7 @@ export default function YeagerNexusV9() {
 
   const metrics = useMemo(() => {
     const totalAccs = accounts.length;
-    const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 15000).length;
+    const onlineAccs = accounts.filter(a => (Date.now() - a.lastUpdated) < 20000).length;
     const maxLevel = accounts.reduce((max, a) => Math.max(max, a.stats?.level || 1), 1);
     const totalCurrency = accounts.reduce((sum, a) => sum + (a.stats?.currency || 0), 0);
     const totalFragments = accounts.reduce((sum, a) => sum + (a.stats?.premiumCurrency || 0), 0);
@@ -145,7 +149,7 @@ export default function YeagerNexusV9() {
     let result = accounts.filter(acc => {
       const normalizedGame = acc.gameName?.includes('Blox Fruits') ? 'Blox Fruits' : acc.gameName;
       const matchGame = selectedGame === 'ALL' || normalizedGame === selectedGame;
-      const isOnline = (Date.now() - acc.lastUpdated) < 15000;
+      const isOnline = (Date.now() - acc.lastUpdated) < 20000;
       const matchStatus = statusFilter === 'ALL' || (statusFilter === 'ONLINE' ? isOnline : !isOnline);
       const matchSearch = acc.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           String(acc.userId).includes(searchQuery) ||
@@ -165,7 +169,7 @@ export default function YeagerNexusV9() {
     <div className="min-h-screen bg-[#020408] text-slate-100 font-sans p-4 md:p-6 relative selection:bg-amber-500/30">
       
       {/* Background Glow */}
-      <div className={`absolute top-0 left-1/4 w-[600px] h-[600px] ${theme.glow} rounded-full blur-[180px] pointer-events-none transition-all duration-700`}></div>
+      <div className={`absolute top-0 left-1/4 w-[700px] h-[700px] ${theme.glow} rounded-full blur-[200px] pointer-events-none transition-all duration-700`}></div>
 
       {/* Toast Notification */}
       {toast && (
@@ -187,19 +191,19 @@ export default function YeagerNexusV9() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 tracking-wider">
-                    YEAGER NEXUS <span className={theme.primary}>v9.0 PRO</span>
+                    YEAGER NEXUS <span className={theme.primary}>v10 ENTERPRISE</span>
                   </h1>
                   <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> LIVE
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> SECURE
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">Hệ Thống Quản Lý Dịch Vụ Game & Trung Gian Tự Động Hóa</p>
+                <p className="text-[11px] text-slate-400">Hệ Thống Quản Lý Dịch Vụ Game, Cày Thuê & Trung Gian Escrow Tự Động</p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 w-full lg:w-auto justify-end flex-wrap">
-            {/* Bộ đổi màu giao diện */}
+            {/* Color Theme Selector */}
             <div className="flex items-center gap-1 bg-[#03060c] border border-slate-800 rounded-xl p-1">
               <Palette className="w-3.5 h-3.5 text-slate-400 ml-1.5 mr-1" />
               {['amber', 'cyan', 'purple', 'emerald'].map(col => (
@@ -212,6 +216,10 @@ export default function YeagerNexusV9() {
                 />
               ))}
             </div>
+
+            <button onClick={() => setShowLogsModal(true)} className="bg-[#03060c] border border-slate-700/80 hover:border-slate-500 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+              <Activity className="w-3.5 h-3.5 text-amber-400" /> Logs ({activityLogs.length})
+            </button>
 
             <button onClick={() => setShowWebhookModal(true)} className="bg-[#03060c] border border-slate-700/80 hover:border-slate-500 text-slate-300 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
               <Share2 className="w-3.5 h-3.5 text-blue-400" /> Webhook
@@ -284,20 +292,33 @@ export default function YeagerNexusV9() {
           </div>
         </div>
 
-        {/* TOOLBAR (SEARCH, STATUS, SORT) */}
+        {/* TOOLBAR (SEARCH, STATUS, SORT, INTERVAL) */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-3 bg-[#080d1a] p-3 rounded-2xl border border-slate-800">
-          <div className="relative w-full md:w-96">
+          <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-500" />
             <input
               type="text"
-              placeholder="Tìm kiếm người chơi, ID, vật phẩm, kiếm..."
+              placeholder="Tìm kiếm người chơi, ID, vũ khí..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#03060c] border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none transition"
             />
           </div>
 
-          <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+            <div className="flex items-center gap-1 bg-[#03060c] border border-slate-800 rounded-xl px-3 py-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <select 
+                value={syncInterval} 
+                onChange={(e) => setSyncInterval(Number(e.target.value))}
+                className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer"
+              >
+                <option value={2000} className="bg-[#080d1a]">Quét: 2s (Nhanh)</option>
+                <option value={3500} className="bg-[#080d1a]">Quét: 3.5s (Chuẩn)</option>
+                <option value={7000} className="bg-[#080d1a]">Quét: 7s (Tiết kiệm)</option>
+              </select>
+            </div>
+
             <div className="flex items-center gap-1 bg-[#03060c] border border-slate-800 rounded-xl px-3 py-1.5">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
               <select 
@@ -333,18 +354,18 @@ export default function YeagerNexusV9() {
               <Lock className="w-8 h-8 text-slate-500 animate-pulse" />
             </div>
             <h2 className="text-lg font-bold text-slate-200">HỆ THỐNG RADAR ĐANG KHÓA</h2>
-            <p className="text-xs text-slate-500 max-w-md">Nhập khóa bảo mật để kích hoạt giao diện giám sát v9.0 Pro.</p>
+            <p className="text-xs text-slate-500 max-w-md">Nhập khóa bảo mật ở góc trên để kích hoạt giao diện giám sát v10 Enterprise.</p>
           </div>
         ) : filteredAccounts.length === 0 ? (
           <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#080d1a]/40 border border-slate-800/60 rounded-3xl p-8">
             <Server className="w-12 h-12 text-slate-600 animate-bounce" />
             <h3 className="text-base font-bold text-slate-300">CHƯA CÓ TÀI KHOẢN KẾT NỐI</h3>
-            <p className="text-xs text-slate-500 max-w-sm">Chạy Script Tracker trong Roblox để đồng bộ dữ liệu vào không gian của bạn.</p>
+            <p className="text-xs text-slate-500 max-w-sm">Chạy Script Tracker v10 trong Roblox để đồng bộ dữ liệu vào không gian của bạn.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredAccounts.map(acc => {
-              const isOnline = (Date.now() - acc.lastUpdated) < 15000;
+              const isOnline = (Date.now() - acc.lastUpdated) < 20000;
               return (
                 <div 
                   key={acc.userId}
@@ -408,6 +429,32 @@ export default function YeagerNexusV9() {
           </div>
         </div>
 
+        {/* MODAL AUDIT LOGS */}
+        {showLogsModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <div className="bg-[#080d1a] border border-slate-700 rounded-3xl w-full max-w-lg p-6 space-y-4 shadow-2xl">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                  <Activity className={`w-4 h-4 ${theme.primary}`} /> Nhật Ký Hoạt Động Radar
+                </h3>
+                <button onClick={() => setShowLogsModal(false)} className="text-slate-400 hover:text-white text-xs font-bold">Đóng</button>
+              </div>
+              <div className="bg-[#03060c] border border-slate-800 rounded-2xl p-3 h-64 overflow-y-auto space-y-2 font-mono text-[11px]">
+                {activityLogs.length === 0 ? (
+                  <p className="text-slate-600 text-center py-10">Chưa có bản ghi hoạt động nào.</p>
+                ) : (
+                  activityLogs.map((log, idx) => (
+                    <div key={idx} className="flex gap-3 text-slate-300 border-b border-slate-900 pb-1.5">
+                      <span className="text-slate-500">[{log.time}]</span>
+                      <span className="flex-1">{log.text}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* MODAL DISCORD WEBHOOK */}
         {showWebhookModal && (
           <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50">
@@ -415,7 +462,7 @@ export default function YeagerNexusV9() {
               <h3 className="text-sm font-black text-white flex items-center gap-2">
                 <Share2 className="w-4 h-4 text-blue-400" /> Cấu Hình Webhook Discord
               </h3>
-              <p className="text-xs text-slate-400">Nhập Webhook URL của kênh Discord shop để tự động bắn thông báo đơn hàng hoặc trạng thái cày thuê.</p>
+              <p className="text-xs text-slate-400">Nhập Webhook URL của kênh Discord shop để tự động gửi báo cáo trạng thái cày thuê.</p>
               <input
                 type="text"
                 placeholder="https://discord.com/api/webhooks/..."
@@ -512,7 +559,7 @@ export default function YeagerNexusV9() {
                         <div className={`bg-gradient-to-r from-slate-200 to-white h-full rounded-full transition-all duration-700`} style={{ width: `${Math.min(100, (selectedAcc.stats?.level / 2550) * 100)}%` }}></div>
                       </div>
                     </div>
-                    <button onClick={() => showToast('Đã gửi thông báo tiến độ lên Discord!')} className={`w-full py-2.5 ${theme.bg} text-black rounded-xl text-xs font-bold transition shadow-lg`}>
+                    <button onClick={() => showToast('Đã gửi báo cáo tiến độ lên Discord!')} className={`w-full py-2.5 ${theme.bg} text-black rounded-xl text-xs font-bold transition shadow-lg`}>
                       Gửi Báo Cáo Lên Discord
                     </button>
                   </div>
@@ -539,7 +586,7 @@ export default function YeagerNexusV9() {
               </div>
 
               <div className="bg-[#03060c] p-3 text-center text-[10px] text-slate-500 border-t border-slate-800 font-mono">
-                Cập nhật lúc: {new Date(selectedAcc.lastUpdated).toLocaleTimeString('vi-VN')} • Yeager Nexus Ultimate v9.0 Pro
+                Cập nhật lúc: {new Date(selectedAcc.lastUpdated).toLocaleTimeString('vi-VN')} • Yeager Nexus v10 Enterprise
               </div>
             </div>
           </div>
