@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, Radar, Settings, Gamepad2, Search, 
-  Download, ShieldCheck, Palette, Activity, Music, Play, Pause, SkipForward,
-  Lock, CheckCircle2, User, Sword, Shield, Coins, Sparkles, RefreshCw, Terminal, Cpu, Zap
+  Download, Palette, Activity, Music, Play, Pause, SkipForward,
+  Lock, CheckCircle2, Sword, RefreshCw, Terminal, Cpu 
 } from 'lucide-react';
 
 export default function YeagerRobloxNexus() {
@@ -188,7 +188,7 @@ export default function YeagerRobloxNexus() {
           </div>
         </header>
 
-        {/* KEY AUTHENTICATION BANNER (IF NOT CONNECTED) */}
+        {/* KEY AUTHENTICATION BANNER */}
         {!activeKey && (
           <div className="bg-gradient-to-r from-[#0b0f19] to-[#0f172a] border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-xl">
             <div className="flex items-center gap-4">
@@ -218,7 +218,6 @@ export default function YeagerRobloxNexus() {
         {/* TAB 1: RADAR TRỰC TUYẾN & KHO ĐỒ */}
         {currentTab === 'radar' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Filter & Search Bar */}
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-[#0b0f19]/70 backdrop-blur-xl p-4 rounded-3xl border border-slate-800/80 shadow-xl">
               <div className="flex items-center gap-2 overflow-x-auto w-full pb-1 lg:pb-0 scrollbar-none">
                 {gameCategories.map(game => (
@@ -246,7 +245,6 @@ export default function YeagerRobloxNexus() {
               </div>
             </div>
 
-            {/* Accounts Grid */}
             {!activeKey ? (
               <div className="h-[45vh] flex flex-col items-center justify-center text-center space-y-3 bg-[#0b0f19]/40 border border-slate-800/80 rounded-3xl p-8 backdrop-blur-md">
                 <Lock className="w-10 h-10 text-slate-600 animate-pulse" />
@@ -265,11 +263,8 @@ export default function YeagerRobloxNexus() {
                   const isOnline = (Date.now() - acc.lastUpdated) < 20000;
                   return (
                     <div key={acc.userId} className="bg-[#0b0f19]/80 border border-slate-800/80 backdrop-blur-xl p-5 rounded-3xl shadow-2xl space-y-4 hover:border-slate-700 transition group relative overflow-hidden">
-                      
-                      {/* Glow Header Accent */}
                       <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.glow}`}></div>
 
-                      {/* User Info Header */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3.5">
                           <img 
@@ -288,7 +283,6 @@ export default function YeagerRobloxNexus() {
                         </span>
                       </div>
 
-                      {/* Stats Grid */}
                       <div className="grid grid-cols-2 gap-2.5 text-xs">
                         <div className="bg-[#030712]/80 p-3 rounded-2xl border border-slate-800/80">
                           <p className="text-slate-500 text-[9px] uppercase font-bold">Cấp Độ Nhân Vật</p>
@@ -300,7 +294,6 @@ export default function YeagerRobloxNexus() {
                         </div>
                       </div>
 
-                      {/* Weapons / Inventory */}
                       {acc.inventory?.weapons && (
                         <div className="bg-[#030712]/80 p-3.5 rounded-2xl border border-slate-800/80 space-y-2">
                           <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-wider">
@@ -316,7 +309,6 @@ export default function YeagerRobloxNexus() {
                         </div>
                       )}
 
-                      {/* Footer Details */}
                       <div className="flex items-center justify-between pt-2 border-t border-slate-900 text-[10px] text-slate-500">
                         <span>ID: {acc.userId}</span>
                         <span>Synced: {new Date(acc.lastUpdated).toLocaleTimeString()}</span>
@@ -380,7 +372,7 @@ export default function YeagerRobloxNexus() {
           </div>
         )}
 
-      </main>
+      </div>
 
       {/* FLOATING MUSIC PLAYER */}
       <div className="fixed bottom-5 right-5 z-40 bg-[#0b0f19]/90 border border-slate-700/80 p-3.5 rounded-2xl shadow-2xl backdrop-blur-2xl flex items-center gap-3.5 w-80">
