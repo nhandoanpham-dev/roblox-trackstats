@@ -1,79 +1,88 @@
--- ==========================================
--- YEAGER PANNEL - ADVANCED MULTI-GAME SYNC
--- ==========================================
+-- =======================================================
+-- YEAGER NEXUS v7.0 - UNIFIED MULTI-GAME TRACKER
+-- =======================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
-local API_ENDPOINT = "https://LINK-VERCEL-CUA-BAN.vercel.app/api/ping"
-local SECRET_KEY = "NHAP_KEY_VAO_DAY"
+local API_URL = "https://your-vercel-domain.vercel.app/api/ping"
+local CLIENT_KEY = "NHAP_KEY_CUA_BAN_O_DAY"
 
--- Tự động nhận diện Game
-local GameDatabase = {
-    [2753915549] = "Blox Fruits",
-    [4442272183] = "Blox Fruits",
-    [7449423635] = "Blox Fruits",
-    [14282329184] = "Attack on Titan Revolution",
-    [4520749081] = "King Legacy"
+-- Bảng cấu hình đã hợp nhất toàn bộ Place ID của Blox Fruits vào một tên duy nhất
+local GameConfigs = {
+    [2753915549] = { Name = "Blox Fruits", Path = "leaderstats", Lvl = "Level", Money = "Beli" }, -- Sea 1
+    [4442272183] = { Name = "Blox Fruits", Path = "leaderstats", Lvl = "Level", Money = "Beli" }, -- Sea 2
+    [7449423635] = { Name = "Blox Fruits", Path = "leaderstats", Lvl = "Level", Money = "Beli" }, -- Sea 3
+    [14282329184] = { Name = "Attack on Titan Revolution", Path = "Data", Lvl = "Rank", Money = "Gold" },
+    [8737899170] = { Name = "Pet Simulator 99", Path = "leaderstats", Lvl = "Rank", Money = "Coins" },
+    [4520749081] = { Name = "King Legacy", Path = "leaderstats", Lvl = "Level", Money = "Beli" }
 }
 
-local CurrentGameName = GameDatabase[game.PlaceId] or "Roblox Game (" .. tostring(game.PlaceId) .. ")"
+local CurrentGame = GameConfigs[game.PlaceId] or { Name = "Roblox Global", Path = "leaderstats", Lvl = "Level", Money = "Cash" }
 
--- Hàm quét thông số an toàn (Chống Crash)
-local function DeepScan()
-    local data = {
-        level = 1, currency = 0, premiumCurrency = 0, bounty = 0
-    }
-    local inv = { weapons = {}, items = {}, accessories = {} }
+local function ScanDataDeep()
+    local statsData = { level = 1, currency = 0, premiumCurrency = 0, bounty = 0 }
+    local inventoryData = { weapons = {}, items = {} }
 
     pcall(function()
-        -- 1. Quét Chỉ Số
-        if LocalPlayer:FindFirstChild("leaderstats") then
-            for _, stat in pairs(LocalPlayer.leaderstats:GetChildren()) do
-                local sName = stat.Name:lower()
-                if sName:find("level") or sName:find("lvl") then data.level = stat.Value
-                elseif sName:find("beli") or sName:find("coin") or sName:find("cash") then data.currency = stat.Value
-                elseif sName:find("gem") or sName:find("fragment") then data.premiumCurrency = stat.Value
-                elseif sName:find("bounty") or sName:find("honor") then data.bounty = stat.Value end
+        local folder = LocalPlayer:FindFirstChild(CurrentGame.Path)
+        if folder then
+            local lvl = folder:FindFirstChild(CurrentGame.Lvl)
+            local mon = folder:FindFirstChild(CurrentGame.Money)
+            if lvl then statsData.level = tonumber(lvl.Value) or 1 end
+            if mon then statsData.currency = tonumber(mon.Value) or 0 end
+
+            for _, stat in pairs(folder:GetChildren()) do
+                if stat:IsA("IntValue") or stat:IsA("NumberValue") then
+                    local name = stat.Name:lower()
+                    if name:find("gem") or name:find("diamond") or name:find("fragment") then
+                        statsData.premiumCurrency = stat.Value
+                    elseif name:find("bounty") or name:find("honor") or name:find("infamy") then
+                        statsData.bounty = stat.Value
+                    end
+                end
             end
         end
 
-        -- 2. Quét Kho Đồ (Vũ khí & Vật phẩm)
-        local function checkItem(item)
-            if item:IsA("Tool") then
-                table.insert(inv.weapons, item.Name)
+        local function extractItems(container)
+            if container then
+                for _, item in pairs(container:GetChildren()) do
+                    if item:IsA("Tool") and not table.find(inventoryData.weapons, item.Name) then
+                        table.insert(inventoryData.weapons, item.Name)
+                    end
+                end
             end
         end
 
-        for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do checkItem(v) end
+        extractItems(LocalPlayer:FindFirstChild("Backpack"))
         if LocalPlayer.Character then
-            for _, v in pairs(LocalPlayer.Character:GetChildren()) do checkItem(v) end
+            extractItems(LocalPlayer.Character)
         end
     end)
 
-    return data, inv
+    return statsData, inventoryData
 end
 
--- Vòng lặp đồng bộ siêu mượt (5 giây 1 lần, chạy ngầm)
 task.spawn(function()
-    while task.wait(5) do
-        if SECRET_KEY ~= "NHAP_KEY_VAO_DAY" and SECRET_KEY ~= "" then
+    print("[Yeager Nexus V7]: Đã khởi động đồng bộ cho: " .. CurrentGame.Name)
+    
+    while task.wait(4) do
+        if CLIENT_KEY ~= "NHAP_KEY_CUA_BAN_O_DAY" and CLIENT_KEY ~= "" then
             pcall(function()
-                local statsData, inventoryData = DeepScan()
-                
+                local sData, iData = ScanDataDeep()
                 local payload = {
-                    key = SECRET_KEY,
+                    key = CLIENT_KEY,
                     userId = LocalPlayer.UserId,
                     username = LocalPlayer.Name,
-                    gameName = CurrentGameName,
-                    stats = statsData,
-                    inventory = inventoryData
+                    gameName = CurrentGame.Name,
+                    stats = sData,
+                    inventory = iData
                 }
 
-                local requestMethod = syn and syn.request or http and http.request or request
-                if requestMethod then
-                    requestMethod({
-                        Url = API_ENDPOINT,
+                local requestFunc = (syn and syn.request) or (http and http.request) or request
+                if requestFunc then
+                    requestFunc({
+                        Url = API_URL,
                         Method = "POST",
                         Headers = { ["Content-Type"] = "application/json" },
                         Body = HttpService:JSONEncode(payload)
