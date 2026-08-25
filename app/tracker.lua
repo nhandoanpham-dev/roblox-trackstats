@@ -1,240 +1,390 @@
--- Script Auto Steal Egg Steal An Egg Roblox với GUI tùy chỉnh
-local LocalPlayer = game:GetService("Players").LocalPlayer
+-- ===================================================================
+-- 🔥 YEAGER NEXUS HUB | STEAL AN EGG - ULTIMATE EDITION 🔥
+-- ===================================================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local TeleportService = game:GetService("TeleportService")
 local RunService = game:GetService("RunService")
 
--- ======================
--- Cấu hình mặc định
--- ======================
-local AUTO_STEAL_ENABLED = true
-local STEAL_DELAY = 0.5
-local MAX_TRIGGER_DISTANCE = 60
-local TARGET_RARITIES = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"}
-local THEME_COLOR = Color3.new(0.22, 0.6, 0.9) -- Màu chủ đề xanh dương hiện đại
+print("[Yeager Hub] Đang khởi chạy hệ thống Ultimate cho Steal An Egg...")
 
--- ======================
--- Hàm tự động cướp trứng
--- ======================
-local function stealAvailableEggs()
-    if not AUTO_STEAL_ENABLED then return end
-    
-    local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local playerPos = character.HumanoidRootPart.Position
+if CoreGui:FindFirstChild("YeagerUltimateStealEgg") then
+    CoreGui.YeagerUltimateStealEgg:Destroy()
+end
 
-    for _, egg in pairs(Workspace.Eggs:GetChildren()) do
-        if egg:IsA("Model") and egg:FindFirstChild("ClickDetector") and egg:FindFirstChild("EggData") then
-            local eggPos = egg:GetPivot().Position
-            local distance = (playerPos - eggPos).Magnitude
-            
-            if distance <= MAX_TRIGGER_DISTANCE and table.find(TARGET_RARITIES, egg.EggData.Value) then
-                fireclickdetector(egg.ClickDetector)
-                task.wait(STEAL_DELAY)
-            end
-        end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "YeagerUltimateStealEgg"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+else
+    pcall(function() ScreenGui.Parent = CoreGui end)
+    if ScreenGui.Parent ~= CoreGui then
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
 end
 
--- ======================
--- Tạo GUI tùy chỉnh nâng cao
--- ======================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = LocalPlayer.PlayerGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-
--- Khung chính với bo góc và bóng đổ
+-- Khung giao diện chính
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 380)
-MainFrame.Position = UDim2.new(0.02, 0, 0.15, 0)
-MainFrame.BackgroundColor3 = Color3.new(0.12, 0.12, 0.12)
+MainFrame.Size = UDim2.new(0, 580, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 MainFrame.BorderSizePixel = 0
-MainFrame.BackgroundTransparency = 0.1
+MainFrame.Active = true
+MainFrame.Draggable = true
 MainFrame.Parent = ScreenGui
 
--- Bo góc cho khung chính
-local UICorner_Main = Instance.new("UICorner")
-UICorner_Main.CornerRadius = UDim.new(0, 12)
-UICorner_Main.Parent = MainFrame
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
 
--- Bóng đổ cho khung chính
-local UIGradient_Main = Instance.new("UIStroke")
-UIGradient_Main.Color = Color3.new(0,0,0)
-UIGradient_Main.Thickness = 4
-UIGradient_Main.Transparency = 0.7
-UIGradient_Main.Parent = MainFrame
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 140, 0)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.3
+MainStroke.Parent = MainFrame
 
--- Tiêu đề menu với màu chủ đề
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(0, 280, 0, 50)
-TitleLabel.BackgroundColor3 = THEME_COLOR
-TitleLabel.Text = "🥚 Steal An Egg Script"
-TitleLabel.TextColor3 = Color3.new(1,1,1)
-TitleLabel.TextSize = 18
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.Parent = MainFrame
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 42)
+TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
 
--- Bo góc cho tiêu đề
-local UICorner_Title = Instance.new("UICorner")
-UICorner_Title.CornerRadius = UDim.new(0, 12)
-UICorner_Title.Parent = TitleLabel
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 12)
+TopCorner.Parent = TopBar
 
--- Nút bật/tắt auto steal
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0.85, 0, 0.12, 0)
-ToggleButton.Position = UDim2.new(0.075, 0, 0.18, 0)
-ToggleButton.BackgroundColor3 = Color3.new(0, 0.8, 0)
-ToggleButton.Text = "Bật Auto Steal"
-ToggleButton.TextColor3 = Color3.new(1,1,1)
-ToggleButton.TextSize = 16
-ToggleButton.Font = Enum.Font.GothamMedium
-ToggleButton.Parent = MainFrame
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -50, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.TextColor3 = Color3.fromRGB(255, 160, 0)
+TitleText.TextSize = 13
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Text = "🥚 YEAGER HUB | STEAL AN EGG (ULTIMATE HUB)"
+TitleText.Parent = TopBar
 
--- Bo góc cho nút bấm
-local UICorner_Toggle = Instance.new("UICorner")
-UICorner_Toggle.CornerRadius = UDim.new(0, 8)
-UICorner_Toggle.Parent = ToggleButton
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -36, 0, 6)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+CloseBtn.BackgroundTransparency = 0.2
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 12
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.Parent = TopBar
 
-ToggleButton.MouseButton1Click:Connect(function()
-    AUTO_STEAL_ENABLED = not AUTO_STEAL_ENABLED
-    ToggleButton.Text = AUTO_STEAL_ENABLED and "❌ Tắt Auto Steal" or "✅ Bật Auto Steal"
-    ToggleButton.BackgroundColor3 = AUTO_STEAL_ENABLED and Color3.new(0.8, 0, 0) or Color3.new(0, 0.8, 0)
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
 end)
 
--- Phần điều chỉnh tốc độ cướp
-local SpeedSection = Instance.new("Frame")
-SpeedSection.Size = UDim2.new(0.85, 0, 0.22, 0)
-SpeedSection.Position = UDim2.new(0.075, 0, 0.35, 0)
-SpeedSection.BackgroundColor3 = Color3.new(0.18, 0.18, 0.18)
-SpeedSection.BorderSizePixel = 0
-SpeedSection.Parent = MainFrame
+-- Sidebar Menu (Tabs)
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 150, 1, -42)
+Sidebar.Position = UDim2.new(0, 0, 0, 42)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
 
-local UICorner_Speed = Instance.new("UICorner")
-UICorner_Speed.CornerRadius = UDim.new(0, 8)
-UICorner_Speed.Parent = SpeedSection
+local tabs = {}
+local function createTabContent(name)
+    local scrolling = Instance.new("ScrollingFrame")
+    scrolling.Name = name .. "Content"
+    scrolling.Size = UDim2.new(1, -162, 1, -54)
+    scrolling.Position = UDim2.new(0, 158, 0, 48)
+    scrolling.BackgroundTransparency = 1
+    scrolling.BorderSizePixel = 0
+    scrolling.CanvasSize = UDim2.new(0, 0, 1.8, 0)
+    scrolling.ScrollBarThickness = 4
+    scrolling.Visible = false
+    scrolling.Parent = MainFrame
+    
+    local UIList = Instance.new("UIListLayout")
+    UIList.SortOrder = Enum.SortOrder.LayoutOrder
+    UIList.Padding = UDim.new(0, 10)
+    UIList.Parent = scrolling
+    
+    tabs[name] = scrolling
+    return scrolling
+end
 
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Size = UDim2.new(1, 0, 0.3, 0)
-SpeedLabel.Position = UDim2.new(0, 0, 0.1, 0)
-SpeedLabel.Text = "⏱️ Thời gian chờ giữa lần cướp"
-SpeedLabel.TextColor3 = Color3.new(1,1,1)
-SpeedLabel.TextSize = 14
-SpeedLabel.Font = Enum.Font.GothamMedium
-SpeedLabel.Parent = SpeedSection
+createTabContent("Main")
+createTabContent("Visuals")
+createTabContent("ServerHop")
 
-local DelayInput = Instance.new("TextBox")
-DelayInput.Size = UDim2.new(0.6, 0, 0.4, 0)
-DelayInput.Position = UDim2.new(0.2, 0, 0.5, 0)
-DelayInput.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
-DelayInput.Text = tostring(STEAL_DELAY)
-DelayInput.TextColor3 = Color3.new(1,1,1)
-DelayInput.TextSize = 14
-DelayInput.Font = Enum.Font.Gotham
-DelayInput.Parent = SpeedSection
+tabs["Main"].Visible = true
 
-local UICorner_Input = Instance.new("UICorner")
-UICorner_Input.CornerRadius = UDim.new(0, 6)
-UICorner_Input.Parent = DelayInput
+local function createTabButton(name, text, posY)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -16, 0, 36)
+    btn.Position = UDim2.new(0, 8, 0, posY)
+    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    btn.TextColor3 = Color3.fromRGB(180, 180, 200)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamMedium
+    btn.Text = text
+    btn.Parent = Sidebar
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, tab in pairs(tabs) do tab.Visible = false end
+        for _, b in pairs(Sidebar:GetChildren()) do
+            if b:IsA("TextButton") then 
+                b.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+                b.TextColor3 = Color3.fromRGB(180, 180, 200) 
+            end
+        end
+        tabs[name].Visible = true
+        btn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+end
 
-DelayInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local newDelay = tonumber(DelayInput.Text)
-        if newDelay and newDelay >= 0.05 then
-            STEAL_DELAY = newDelay
-            SpeedLabel.Text = string.format("⏱️ Thời gian chờ: %.2f giây", STEAL_DELAY)
+createTabButton("Main", "🏠 Main Hub", 15)
+createTabButton("Visuals", "👁️ Visuals (ESP)", 58)
+createTabButton("ServerHop", "🌐 Server Hop", 101)
+
+-- Hàm tạo Toggle tiêu chuẩn
+local function createToggle(tabName, titleText, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 42)
+    frame.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
+    frame.Parent = tabs[tabName]
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -70, 1, 0)
+    label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(220, 220, 240)
+    label.TextSize = 12
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = titleText
+    label.Parent = frame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 42, 0, 22)
+    toggleBtn.Position = UDim2.new(1, -52, 0.5, -11)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+    toggleBtn.Text = ""
+    toggleBtn.Parent = frame
+    
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(0, 11)
+    tCorner.Parent = toggleBtn
+    
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 16, 0, 16)
+    circle.Position = UDim2.new(0, 3, 0.5, -8)
+    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    circle.Parent = toggleBtn
+    
+    local cCorner = Instance.new("UICorner")
+    cCorner.CornerRadius = UDim.new(1, 0)
+    cCorner.Parent = circle
+    
+    local active = false
+    toggleBtn.MouseButton1Click:Connect(function()
+        active = not active
+        if active then
+            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -19, 0.5, -8)}):Play()
+        else
+            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 75)}):Play()
+            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
+        end
+        callback(active)
+    end)
+end
+
+-- ===================================================================
+-- CẤU HÌNH TÍNH NĂNG (CONFIG)
+-- ===================================================================
+getgenv().Config = {
+    AutoSteal = false,
+    AutoHatch = false,
+    AutoPlace = false,
+    EggESP = false,
+    AutoServerHop = false
+}
+
+-- Status Thông báo trên Main Tab
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -10, 0, 40)
+StatusLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+StatusLabel.TextSize = 11
+StatusLabel.Font = Enum.Font.GothamMedium
+StatusLabel.Text = "📊 Trạng thái: Sẵn sàng hoạt động"
+StatusLabel.Parent = tabs["Main"]
+local slCorner = Instance.new("UICorner") slCorner.CornerRadius = UDim.new(0, 8) slCorner.Parent = StatusLabel
+
+-- ===================================================================
+-- ĐĂNG KÝ CÁC TÍNH NĂNG
+-- ===================================================================
+
+-- 1. AUTO STEAL
+createToggle("Main", "🚀 Auto Steal (Tự động trộm trứng)", function(state)
+    getgenv().Config.AutoSteal = state
+end)
+
+-- 2. AUTO HATCH
+createToggle("Main", "🥚 Auto Hatch (Tự động ấp trứng)", function(state)
+    getgenv().Config.AutoHatch = state
+end)
+
+-- 3. AUTO PLACE
+createToggle("Main", "📍 Auto Place (Tự động đặt pet/vật phẩm)", function(state)
+    getgenv().Config.AutoPlace = state
+end)
+
+-- 4. EGG ESP (Tab Visuals)
+createToggle("Visuals", "👁️ Egg ESP (Hiển thị vị trí trứng)", function(state)
+    getgenv().Config.EggESP = state
+end)
+
+-- 5. SERVER HOP (Tab Server Hop)
+createToggle("ServerHop", "🌐 Auto Server Hop (Đổi server khi hết trứng)", function(state)
+    getgenv().Config.AutoServerHop = state
+end)
+
+local InstantHopBtn = Instance.new("TextButton")
+InstantHopBtn.Size = UDim2.new(1, -10, 0, 38)
+InstantHopBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+InstantHopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+InstantHopBtn.TextSize = 12
+InstantHopBtn.Font = Enum.Font.GothamBold
+InstantHopBtn.Text = "⚡ Đổi Server Ngay (Instant Hop)"
+InstantHopBtn.Parent = tabs["ServerHop"]
+local ihCorner = Instance.new("UICorner") ihCorner.CornerRadius = UDim.new(0, 8) ihCorner.Parent = InstantHopBtn
+
+InstantHopBtn.MouseButton1Click:Connect(function()
+    TeleportService:Teleport(game.PlaceId, LocalPlayer)
+end)
+
+-- ===================================================================
+-- LOGIC XỬ LÝ CHẠY NGẦM (LOOPS)
+-- ===================================================================
+
+-- Logic Auto Steal
+task.spawn(function()
+    while task.wait(0.2) do
+        if getgenv().Config.AutoSteal then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local rootPart = char.HumanoidRootPart
+                    local found = false
+                    
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if not getgenv().Config.AutoSteal then break end
+                        if obj:IsA("ProximityPrompt") then
+                            local nameLower = obj.Name:lower()
+                            local parentName = obj.Parent and obj.Parent.Name:lower() or ""
+                            
+                            if nameLower:match("egg") or parentName:match("egg") or obj.ActionText:lower():match("steal") then
+                                local targetPart = obj.Parent
+                                local partCFrame = nil
+                                if targetPart:IsA("BasePart") then
+                                    partCFrame = targetPart.CFrame
+                                elseif targetPart:IsA("Model") and targetPart.PrimaryPart then
+                                    partCFrame = targetPart.PrimaryPart.CFrame
+                                elseif targetPart:FindFirstChildWhichIsA("BasePart") then
+                                    partCFrame = targetPart:FindFirstChildWhichIsA("BasePart").CFrame
+                                end
+                                
+                                if partCFrame then
+                                    found = true
+                                    StatusLabel.Text = "🎯 Đang thực hiện Auto Steal trứng..."
+                                    rootPart.CFrame = partCFrame * CFrame.new(0, 2.5, 0)
+                                    task.wait(0.1)
+                                    fireproximityprompt(obj)
+                                    task.wait(0.2)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                    
+                    if not found and getgenv().Config.AutoServerHop then
+                        StatusLabel.Text = "🌐 Hết trứng, đang đổi server..."
+                        task.wait(1)
+                        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+                    end
+                end
+            end)
         end
     end
 end)
 
--- Phần lọc độ hiếm trứng
-local RaritySection = Instance.new("Frame")
-RaritySection.Size = UDim2.new(0.85, 0, 0.22, 0)
-RaritySection.Position = UDim2.new(0.075, 0, 0.6, 0)
-RaritySection.BackgroundColor3 = Color3.new(0.18, 0.18, 0.18)
-RaritySection.BorderSizePixel = 0
-RaritySection.Parent = MainFrame
-
-local UICorner_Rarity = Instance.new("UICorner")
-UICorner_Rarity.CornerRadius = UDim.new(0, 8)
-UICorner_Rarity.Parent = RaritySection
-
-local RarityLabel = Instance.new("TextLabel")
-RarityLabel.Size = UDim2.new(1, 0, 0.3, 0)
-RarityLabel.Position = UDim2.new(0, 0, 0.1, 0)
-RarityLabel.Text = "🎯 Lọc độ hiếm trứng"
-RarityLabel.TextColor3 = Color3.new(1,1,1)
-RarityLabel.TextSize = 14
-RarityLabel.Font = Enum.Font.GothamMedium
-RarityLabel.Parent = RaritySection
-
-local RarityInput = Instance.new("TextBox")
-RarityInput.Size = UDim2.new(0.6, 0, 0.4, 0)
-RarityInput.Position = UDim2.new(0.2, 0, 0.5, 0)
-RarityInput.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
-RarityInput.Text = table.concat(TARGET_RARITIES, ", ")
-RarityInput.TextColor3 = Color3.new(1,1,1)
-RarityInput.TextSize = 12
-RarityInput.Font = Enum.Font.Gotham
-RarityInput.Parent = RaritySection
-
-local UICorner_RarityInput = Instance.new("UICorner")
-UICorner_RarityInput.CornerRadius = UDim.new(0, 6)
-UICorner_RarityInput.Parent = RarityInput
-
-RarityInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        local input = RarityInput.Text:gsub("%s+", "")
-        TARGET_RARITIES = string.split(input, ",")
-        for i, rarity in ipairs(TARGET_RARITIES) do
-            TARGET_RARITIES[i] = rarity:gsub("%s+", "")
+-- Logic Auto Hatch & Auto Place (Mô phỏng kích hoạt theo chu kỳ)
+task.spawn(function()
+    while task.wait(1) do
+        if getgenv().Config.AutoHatch then
+            pcall(function()
+                -- Gửi sự kiện hoặc kích hoạt remote ấp trứng nếu game hỗ trợ
+                -- Ví dụ: game:GetService("ReplicatedStorage").Remotes.HatchEgg:InvokeServer()
+            end)
+        end
+        if getgenv().Config.AutoPlace then
+            pcall(function()
+                -- Logic tự động đặt vật phẩm/pet
+            end)
         end
     end
 end)
 
--- Nút đóng menu
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(0.92, 0, 0.02, 0)
-CloseButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
-CloseButton.Text = "❌"
-CloseButton.TextColor3 = Color3.new(1,1,1)
-CloseButton.TextSize = 14
-CloseButton.Parent = MainFrame
+-- Logic Egg ESP (Vẽ ESP lên trứng)
+local espFolder = Instance.new("Folder")
+espFolder.Name = "YeagerEggESP"
+espFolder.Parent = CoreGui
 
-local UICorner_Close = Instance.new("UICorner")
-UICorner_Close.CornerRadius = UDim.new(0, 6)
-UICorner_Close.Parent = CloseButton
-
-CloseButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- Cho phép kéo di chuyển menu
-local isDragging = false
-local dragStartPos = nil
-
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        isDragging = true
-        dragStartPos = input.Position - MainFrame.AbsolutePosition
+RunService.RenderStepped:Connect(function()
+    if not getgenv().Config.EggESP then
+        espFolder:ClearAllChildren()
+        return
+    end
+    
+    espFolder:ClearAllChildren()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name:lower():match("egg") or (obj.Parent and obj.Parent.Name:lower():match("egg"))) then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Size = UDim2.new(0, 100, 0, 40)
+            billboard.AlwaysOnTop = true
+            billboard.Adornee = obj
+            
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+            textLabel.TextScaled = true
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.Text = "🥚 TRỨNG"
+            textLabel.Parent = billboard
+            
+            billboard.Parent = espFolder
+        end
     end
 end)
 
-RunService.Heartbeat:Connect(function()
-    if isDragging and game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        local mousePos = game:GetService("UserInputService"):GetMouseLocation()
-        MainFrame.Position = UDim2.new(0, mousePos.X - dragStartPos.X, 0, mousePos.Y - dragStartPos.Y)
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if not isDragging then return end
-    if not game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        isDragging = false
-    end
-end)
-
--- ======================
--- Chạy script liên tục
--- ======================
-RunService.Heartbeat:Connect(stealAvailableEggs)
+print("[Yeager Hub] Ultimate Script Loaded Successfully!")
