@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v35 FIXED) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v36 FIXED) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -238,7 +238,7 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- FIX LỖI AUTO FARM & TẤN CÔNG ỔN ĐỊNH (FIX TOOL UN-EQUIP LOOP)
+-- FIX LỖI TỰ ĐỘNG ĐÁNH (KẾT HỢP VIRTUALUSER CLICK CHUỘT THỰC TẾ)
 -- ===================================================================
 getgenv().AutoFarm = false
 getgenv().FastAttack = false
@@ -252,27 +252,30 @@ task.spawn(function()
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
                     
-                    -- 1. Kiểm tra vũ khí trên tay ổn định (Tránh lỗi rút ra cất vào liên tục)
+                    -- 1. Trang bị vũ khí / Combat nếu chưa cầm
                     local currentTool = char:FindFirstChildOfClass("Tool")
                     if not currentTool then
                         for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
                             if item:IsA("Tool") then
                                 humanoid:EquipTool(item)
-                                task.wait(0.1)
+                                task.wait(0.2)
                                 break
                             end
                         end
                     else
-                        -- Kích hoạt đòn đánh liên tục khi đã cầm vũ khí
+                        -- 2. Kích hoạt đòn đánh bằng cả Tool Activate và giả lập nhấp chuột (VirtualUser)
                         currentTool:Activate()
+                        VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
+                        task.wait(0.05)
+                        VirtualUser:Button1Up(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
                     end
                     
-                    -- 2. Tìm quái gần nhất và dịch chuyển tới đầu quái để chém
+                    -- 3. Bay bám sát phía trên đầu/trước mặt quái để nhận diện đòn đánh
                     if Workspace:FindFirstChild("Enemies") then
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                                 if getgenv().AutoFarm then
-                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 10, 3)
+                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 6, 2)
                                     break
                                 end
                             end
@@ -292,12 +295,12 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v35 (Fixed Attack)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v36 (Fixed Click Attack)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm & Attack (Cày cấp & Đánh quái ổn định)", function(state)
+createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đấm quái)", function(state)
     getgenv().AutoFarm = state
 end)
 
@@ -309,7 +312,10 @@ createToggle("Combat", "⚔️ Fast Attack (Tấn công siêu tốc)", function(
             pcall(function()
                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if tool then tool:Activate() end
+                if tool then 
+                    tool:Activate()
+                    VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
+                end
             end)
         end
     end)
@@ -376,4 +382,4 @@ if Req then
     end)
 end
 
-print("Yeager Nexus Hub Loaded Successfully!")
+print("Yeager Nexus Loaded Successfully!")
