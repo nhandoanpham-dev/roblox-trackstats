@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v37 FIXED) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v38 STABLE) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -10,7 +10,6 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
-local Camera = Workspace.CurrentCamera
 
 local API_URL = "https://aotwing-dusky.vercel.app/api/ping?userId=" .. LocalPlayer.UserId
 local ACCESS_KEY = "yeager2026"
@@ -239,13 +238,13 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- FIX LỖI TẤN CÔNG THỰC TẾ (TÍCH HỢP VIRTUALUSER CAPTURE & CAMERA LOOK)
+-- FIX LỖI GIẬT LAG & KHÔNG KHÓA CAMERA (MƯỢT MÀ & ĐÁNH CHUẨN)
 -- ===================================================================
 getgenv().AutoFarm = false
 getgenv().FastAttack = false
 
 task.spawn(function()
-    while task.wait(0.05) do
+    while task.wait(0.1) do
         if getgenv().AutoFarm then
             pcall(function()
                 local char = LocalPlayer.Character
@@ -253,18 +252,15 @@ task.spawn(function()
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
                     
-                    -- Tìm và chọn quái gần nhất
+                    -- Tìm và đánh quái mượt mà không làm giật camera
                     if Workspace:FindFirstChild("Enemies") then
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                                 if getgenv().AutoFarm then
-                                    -- 1. Dịch chuyển bám sát phía trên đầu quái
+                                    -- Dịch chuyển bám sát phía trên đầu quái
                                     rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 2)
                                     
-                                    -- 2. Hướng camera thẳng vào quái để game nhận diện tâm đánh
-                                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemy.HumanoidRootPart.Position)
-                                    
-                                    -- 3. Trang bị vũ khí nếu chưa cầm
+                                    -- Trang bị vũ khí / Combat nếu chưa cầm
                                     local currentTool = char:FindFirstChildOfClass("Tool")
                                     if not currentTool then
                                         for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
@@ -275,9 +271,7 @@ task.spawn(function()
                                             end
                                         end
                                     else
-                                        -- 4. Kém đòn đánh qua VirtualUser (Capture Controller) & Tool Activate
-                                        VirtualUser:CaptureController()
-                                        VirtualUser:Button1Down(Vector2.new(500, 500), Camera.CFrame)
+                                        -- Kích hoạt đòn đánh liên tục
                                         currentTool:Activate()
                                     end
                                     break
@@ -299,12 +293,12 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v37 (Forced Attack Fix)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v38 (Anti-Jitter Stable)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đánh quái chuẩn)", function(state)
+createToggle("Farm", "⚡ Auto Farm & Attack (Cày & Đánh mượt mà)", function(state)
     getgenv().AutoFarm = state
 end)
 
@@ -312,14 +306,12 @@ createToggle("Combat", "⚔️ Fast Attack (Tấn công siêu tốc)", function(
     getgenv().FastAttack = state
     task.spawn(function()
         while getgenv().FastAttack do
-            task.wait(0.03)
+            task.wait(0.05)
             pcall(function()
                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool then 
-                    VirtualUser:CaptureController()
                     tool:Activate()
-                    VirtualUser:Button1Down(Vector2.new(500, 500), Camera.CFrame)
                 end
             end)
         end
