@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v38 STABLE) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v39 AUTO QUEST & FARM) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -238,11 +238,37 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- FIX LỖI GIẬT LAG & KHÔNG KHÓA CAMERA (MƯỢT MÀ & ĐÁNH CHUẨN)
+-- HỆ THỐNG AUTO QUEST & AUTO FARM & ATTACK THÔNG MINH
 -- ===================================================================
 getgenv().AutoFarm = false
+getgenv().AutoQuest = true
 getgenv().FastAttack = false
 
+-- Hàm lấy cấp độ hiện tại của người chơi
+local function getLevel()
+    local data = LocalPlayer:FindFirstChild("Data") or LocalPlayer:FindFirstChild("leaderstats")
+    if data and data:FindFirstChild("Level") then
+        return data.Level.Value
+    end
+    return 1
+end
+
+-- Hàm kiểm tra xem đã có nhiệm vụ chưa
+local function hasActiveQuest()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if playerGui then
+        local main = playerGui:FindFirstChild("Main")
+        if main then
+            local quest = main:FindFirstChild("Quest")
+            if quest and quest.Visible then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- Tiến trình Auto Quest & Auto Farm chính
 task.spawn(function()
     while task.wait(0.1) do
         if getgenv().AutoFarm then
@@ -251,13 +277,49 @@ task.spawn(function()
                 if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
+                    local level = getLevel()
                     
-                    -- Tìm và đánh quái mượt mà không làm giật camera
+                    -- 1. Kiểm tra và nhận nhiệm vụ tự động nếu chưa có
+                    if getgenv().AutoQuest and not hasActiveQuest() then
+                        local questNPCName = ""
+                        local questPos = nil
+                        
+                        -- Phân định mốc level Sea 1 cơ bản
+                        if level >= 1 and level < 10 then
+                            questNPCName = "BanditQuestGiver"
+                            questPos = CFrame.new(1059, 16, 1373)
+                        elseif level >= 10 and level < 15 then
+                            questNPCName = "JungleQuestGiver"
+                            questPos = CFrame.new(-1598, 36, 153)
+                        elseif level >= 15 and level < 30 then
+                            questNPCName = "GorillaQuestGiver"
+                            questPos = CFrame.new(-1601, 36, 153)
+                        elseif level >= 30 and level < 60 then
+                            questNPCName = "PirateVillageQuestGiver"
+                            questPos = CFrame.new(-1140, 4.7, 3827)
+                        else
+                            -- Mặc định quanh khu vực Starter/Jungle nếu không khớp
+                            questPos = CFrame.new(1059, 16, 1373)
+                        end
+                        
+                        if questPos then
+                            rootPart.CFrame = questPos
+                            task.wait(0.5)
+                            -- Kích hoạt giao tiếp nhận nhiệm vụ qua Remotes nếu có sẵn trong game
+                            local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+                            if remotes and remotes:FindFirstChild("CommF_") then
+                                remotes.CommF_:InvokeServer("StartQuest", questNPCName, 1)
+                            end
+                            task.wait(1)
+                        end
+                    end
+                    
+                    -- 2. Đã có nhiệm vụ -> Tìm quái tương ứng để farm và tấn công
                     if Workspace:FindFirstChild("Enemies") then
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                                 if getgenv().AutoFarm then
-                                    -- Dịch chuyển bám sát phía trên đầu quái
+                                    -- Bay bám sát phía trên đầu quái
                                     rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 2)
                                     
                                     -- Trang bị vũ khí / Combat nếu chưa cầm
@@ -271,8 +333,9 @@ task.spawn(function()
                                             end
                                         end
                                     else
-                                        -- Kích hoạt đòn đánh liên tục
+                                        -- Kích hoạt đòn đánh liên tục ổn định
                                         currentTool:Activate()
+                                        VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
                                     end
                                     break
                                 end
@@ -293,12 +356,12 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v38 (Anti-Jitter Stable)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v39 (Auto Quest & Attack Fixed)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm & Attack (Cày & Đánh mượt mà)", function(state)
+createToggle("Farm", "⚡ Auto Quest & Farm (Tự nhận nhiệm vụ & Đánh quái)", function(state)
     getgenv().AutoFarm = state
 end)
 
@@ -306,7 +369,7 @@ createToggle("Combat", "⚔️ Fast Attack (Tấn công siêu tốc)", function(
     getgenv().FastAttack = state
     task.spawn(function()
         while getgenv().FastAttack do
-            task.wait(0.05)
+            task.wait(0.04)
             pcall(function()
                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
