@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ADVANCED KAITUN EDITION (v41) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS UNIVERSAL KAITUN EDITION (v42) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -16,13 +16,13 @@ local ACCESS_KEY = "yeager2026"
 local Req = request or http_request or (syn and syn.request)
 
 -- Xóa menu cũ nếu có để tránh trùng lặp
-if CoreGui:FindFirstChild("YeagerNexusAdvancedKaitun") then
-    CoreGui.YeagerNexusAdvancedKaitun:Destroy()
+if CoreGui:FindFirstChild("YeagerUniversalKaitun") then
+    CoreGui.YeagerUniversalKaitun:Destroy()
 end
 
 -- Khởi tạo Main GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YeagerNexusAdvancedKaitun"
+ScreenGui.Name = "YeagerUniversalKaitun"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -37,7 +37,7 @@ else
 end
 
 -- ===================================================================
--- THIẾT KẾ GIAO DIỆN (UI DESIGN - ADVANCED KAITUN)
+-- THIẾT KẾ GIAO DIỆN (UI DESIGN - UNIVERSAL KAITUN)
 -- ===================================================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -55,7 +55,7 @@ MainCorner.CornerRadius = UDim.new(0, 12)
 MainCorner.Parent = MainFrame
 
 local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(255, 100, 0)
+MainStroke.Color = Color3.fromRGB(0, 200, 255)
 MainStroke.Thickness = 1.5
 MainStroke.Transparency = 0.3
 MainStroke.Parent = MainFrame
@@ -63,7 +63,7 @@ MainStroke.Parent = MainFrame
 -- Top Bar
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 45)
-TopBar.BackgroundColor3 = Color3.fromRGB(25, 20, 18)
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 TopBar.BorderSizePixel = 0
 TopBar.Parent = MainFrame
 
@@ -74,19 +74,19 @@ TopCorner.Parent = TopBar
 local FixTop = Instance.new("Frame")
 FixTop.Size = UDim2.new(1, 0, 0, 10)
 FixTop.Position = UDim2.new(0, 0, 1, -10)
-FixTop.BackgroundColor3 = Color3.fromRGB(25, 20, 18)
+FixTop.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
 FixTop.BorderSizePixel = 0
 FixTop.Parent = TopBar
 
 local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(0, 380, 1, 0)
+TitleText.Size = UDim2.new(0, 400, 1, 0)
 TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.TextColor3 = Color3.fromRGB(255, 120, 0)
+TitleText.TextColor3 = Color3.fromRGB(0, 220, 255)
 TitleText.TextSize = 15
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.Text = "⚡ YEAGER ADVANCED KAITUN | BLOX FRUITS"
+TitleText.Text = "⚡ YEAGER UNIVERSAL KAITUN | BLOX FRUITS"
 TitleText.Parent = TopBar
 
 -- Nút Đóng (X)
@@ -172,7 +172,7 @@ local function createTabButton(name, text, posY)
             if b:IsA("TextButton") then b.BackgroundColor3 = Color3.fromRGB(25, 25, 35); b.TextColor3 = Color3.fromRGB(180, 180, 200) end
         end
         tabs[name].Visible = true
-        btn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+        btn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     end)
 end
@@ -229,7 +229,7 @@ local function createToggle(tabName, titleText, callback)
     toggleBtn.MouseButton1Click:Connect(function()
         active = not active
         if active then
-            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 100, 0)}):Play()
+            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}):Play()
             TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -21, 0.5, -9)}):Play()
         else
             TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 75)}):Play()
@@ -240,9 +240,9 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- HỆ THỐNG LOGIC ADVANCED KAITUN (AUTO QUEST, ISLANDS & SHOP)
+-- HỆ THỐNG UNIVERSAL KAITUN & TỰ ĐỘNG TÌM QUÁI MỌI LEVEL
 -- ===================================================================
-getgenv().AdvancedKaitun = false
+getgenv().UniversalKaitun = false
 getgenv().AutoBuyFightingStyle = false
 getgenv().AutoStatsMode = false
 
@@ -254,87 +254,49 @@ local function getLevel()
     return 1
 end
 
-local function hasActiveQuest()
-    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-    if playerGui then
-        local main = playerGui:FindFirstChild("Main")
-        if main then
-            local quest = main:FindFirstChild("Quest")
-            if quest and quest.Visible then
-                return true
-            end
-        end
-    end
-    return false
-end
-
--- Vòng lặp Kaitun cốt lõi mở rộng nhiều mốc đảo
+-- Vòng lặp Kaitun thông minh (Hỗ trợ mọi level & tự tìm quái gần nhất)
 task.spawn(function()
     while task.wait(0.1) do
-        if getgenv().AdvancedKaitun then
+        if getgenv().UniversalKaitun then
             pcall(function()
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
-                    local level = getLevel()
                     
-                    -- 1. Kiểm tra và nhận nhiệm vụ tự động theo mốc Level & Đảo
-                    if not hasActiveQuest() then
-                        local questNPC = "BanditQuestGiver"
-                        local questPos = CFrame.new(1059, 16, 1373)
-                        
-                        if level >= 10 and level < 15 then
-                            questNPC = "JungleQuestGiver"
-                            questPos = CFrame.new(-1598, 36, 153)
-                        elseif level >= 15 and level < 30 then
-                            questNPC = "GorillaQuestGiver"
-                            questPos = CFrame.new(-1601, 36, 153)
-                        elseif level >= 30 and level < 60 then
-                            questNPC = "PirateVillageQuestGiver"
-                            questPos = CFrame.new(-1140, 4.7, 3827)
-                        elseif level >= 60 and level < 90 then
-                            questNPC = "DesertQuestGiver"
-                            questPos = CFrame.new(896, 6, 4390)
-                        elseif level >= 90 and level < 120 then
-                            questNPC = "SnowQuestGiver"
-                            questPos = CFrame.new(1389, 87, -1298)
-                        elseif level >= 120 then
-                            questNPC = "MarineQuestGiver"
-                            questPos = CFrame.new(-5035, 20, 4325)
-                        end
-                        
-                        rootPart.CFrame = questPos
-                        task.wait(0.4)
-                        local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
-                        if remotes and remotes:FindFirstChild("CommF_") then
-                            remotes.CommF_:InvokeServer("StartQuest", questNPC, 1)
-                        end
-                        task.wait(0.8)
-                    end
-                    
-                    -- 2. Tự động tìm quái, bám sát và tấn công
+                    -- Tìm kiếm và bám sát con quái gần nhất trong Workspace.Enemies
                     if Workspace:FindFirstChild("Enemies") then
+                        local closestEnemy = nil
+                        local shortestDist = math.huge
+                        
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-                                if getgenv().AdvancedKaitun then
-                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 2)
-                                    
-                                    local currentTool = char:FindFirstChildOfClass("Tool")
-                                    if not currentTool then
-                                        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-                                            if item:IsA("Tool") then
-                                                humanoid:EquipTool(item)
-                                                task.wait(0.1)
-                                                break
-                                            end
-                                        end
-                                    else
-                                        currentTool:Activate()
-                                        VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
-                                    end
-                                    break
+                                local dist = (rootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
+                                if dist < shortestDist then
+                                    shortestDist = dist
+                                    closestEnemy = enemy
                                 end
+                            end
+                        end
+                        
+                        if closestEnemy and closestEnemy:FindFirstChild("HumanoidRootPart") then
+                            -- Dịch chuyển bám sát phía trên đầu quái
+                            rootPart.CFrame = closestEnemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 2)
+                            
+                            -- Trang bị vũ khí trong balo nếu chưa cầm
+                            local currentTool = char:FindFirstChildOfClass("Tool")
+                            if not currentTool then
+                                for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+                                    if item:IsA("Tool") then
+                                        humanoid:EquipTool(item)
+                                        task.wait(0.1)
+                                        break
+                                    end
+                                end
+                            else
+                                -- Kích hoạt đòn đánh liên tục ổn định
+                                currentTool:Activate()
+                                VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
                             end
                         end
                     end
@@ -344,17 +306,18 @@ task.spawn(function()
     end
 end)
 
--- Vòng lặp Tự động mua Chiến kỹ (Fighting Styles)
+-- Vòng lặp Tự động mua Chiến kỹ
 task.spawn(function()
     while task.wait(5) do
         if getgenv().AutoBuyFightingStyle then
             pcall(function()
                 local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
                 if remotes and remotes:FindFirstChild("CommF_") then
-                    -- Tự động mua Black Leg, Electro, Water Kung Fu khi đủ điều kiện
                     remotes.CommF_:InvokeServer("BuyBlackLeg")
                     remotes.CommF_:InvokeServer("BuyElectro")
                     remotes.CommF_:InvokeServer("BuyWaterKungFu")
+                    remotes.CommF_:InvokeServer("BuyDragonClaw")
+                    remotes.CommF_:InvokeServer("BuySuperhuman")
                 end
             end)
         end
@@ -369,7 +332,7 @@ task.spawn(function()
                 local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
                 if remotes and remotes:FindFirstChild("CommF_") then
                     remotes.CommF_:InvokeServer("AddPoint", "Melee", 3)
-                    task.wait(0.5)
+                    task.wait(0.3)
                     remotes.CommF_:InvokeServer("AddPoint", "Defense", 3)
                 end
             end)
@@ -380,22 +343,22 @@ end)
 -- Tab Home Content
 local HomeInfo = Instance.new("TextLabel")
 HomeInfo.Size = UDim2.new(1, -10, 0, 80)
-HomeInfo.BackgroundColor3 = Color3.fromRGB(25, 20, 18)
-HomeInfo.TextColor3 = Color3.fromRGB(220, 200, 180)
+HomeInfo.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+HomeInfo.TextColor3 = Color3.fromRGB(200, 220, 240)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Kaitun: Sẵn sàng tự động từ A-Z ✅\n🔥 Hub: Yeager Advanced Kaitun v41"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái: Đã cập nhật Universal Kaitun ✅\n🔥 Hub: Yeager Universal v42"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Kaitun Toggles
-createToggle("Kaitun", "🚀 Bật Advanced Kaitun (Tự đổi đảo, nhận nhiệm vụ & cày)", function(state)
-    getgenv().AdvancedKaitun = state
+createToggle("Kaitun", "🚀 Bật Universal Kaitun (Tự tìm quái & cày mọi Level/Sea)", function(state)
+    getgenv().UniversalKaitun = state
 end)
 
 -- Tab Shop Toggles
-createToggle("Shop", "🛒 Tự động mua Fighting Styles (Black Leg, Electro,...)", function(state)
+createToggle("Shop", "🛒 Tự động mua Fighting Styles & nâng cấp", function(state)
     getgenv().AutoBuyFightingStyle = state
 end)
 
@@ -437,18 +400,18 @@ if Req then
                         key = ACCESS_KEY,
                         userId = LocalPlayer.UserId,
                         username = LocalPlayer.Name,
-                        gameName = "Blox Fruits Advanced Kaitun",
+                        gameName = "Blox Fruits Universal Kaitun",
                         stats = {level = lv, currency = cur, fragments = fr},
                         lastUpdated = tick() * 1000
                     })
                 })
 
                 if res and (res.StatusCode == 200 or res.status_code == 200) then
-                    HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Web Dashboard: Đang treo Advanced Kaitun ✅\n📊 Level: " .. lv .. " | Beli: " .. cur
+                    HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Web Dashboard: Đang treo Universal Kaitun ✅\n📊 Level: " .. lv .. " | Beli: " .. cur
                 end
             end)
         end
     end)
 end
 
-print("Yeager Advanced Kaitun Loaded Successfully!")
+print("Yeager Universal Kaitun Loaded Successfully!")
