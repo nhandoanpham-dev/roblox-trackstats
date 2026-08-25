@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v36 FIXED) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v37 FIXED) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -10,6 +10,7 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local VirtualUser = game:GetService("VirtualUser")
+local Camera = Workspace.CurrentCamera
 
 local API_URL = "https://aotwing-dusky.vercel.app/api/ping?userId=" .. LocalPlayer.UserId
 local ACCESS_KEY = "yeager2026"
@@ -238,13 +239,13 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- FIX LỖI TỰ ĐỘNG ĐÁNH (KẾT HỢP VIRTUALUSER CLICK CHUỘT THỰC TẾ)
+-- FIX LỖI TẤN CÔNG THỰC TẾ (TÍCH HỢP VIRTUALUSER CAPTURE & CAMERA LOOK)
 -- ===================================================================
 getgenv().AutoFarm = false
 getgenv().FastAttack = false
 
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.05) do
         if getgenv().AutoFarm then
             pcall(function()
                 local char = LocalPlayer.Character
@@ -252,30 +253,33 @@ task.spawn(function()
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
                     
-                    -- 1. Trang bị vũ khí / Combat nếu chưa cầm
-                    local currentTool = char:FindFirstChildOfClass("Tool")
-                    if not currentTool then
-                        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-                            if item:IsA("Tool") then
-                                humanoid:EquipTool(item)
-                                task.wait(0.2)
-                                break
-                            end
-                        end
-                    else
-                        -- 2. Kích hoạt đòn đánh bằng cả Tool Activate và giả lập nhấp chuột (VirtualUser)
-                        currentTool:Activate()
-                        VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
-                        task.wait(0.05)
-                        VirtualUser:Button1Up(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
-                    end
-                    
-                    -- 3. Bay bám sát phía trên đầu/trước mặt quái để nhận diện đòn đánh
+                    -- Tìm và chọn quái gần nhất
                     if Workspace:FindFirstChild("Enemies") then
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                                 if getgenv().AutoFarm then
-                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 6, 2)
+                                    -- 1. Dịch chuyển bám sát phía trên đầu quái
+                                    rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 2)
+                                    
+                                    -- 2. Hướng camera thẳng vào quái để game nhận diện tâm đánh
+                                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, enemy.HumanoidRootPart.Position)
+                                    
+                                    -- 3. Trang bị vũ khí nếu chưa cầm
+                                    local currentTool = char:FindFirstChildOfClass("Tool")
+                                    if not currentTool then
+                                        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+                                            if item:IsA("Tool") then
+                                                humanoid:EquipTool(item)
+                                                task.wait(0.1)
+                                                break
+                                            end
+                                        end
+                                    else
+                                        -- 4. Kém đòn đánh qua VirtualUser (Capture Controller) & Tool Activate
+                                        VirtualUser:CaptureController()
+                                        VirtualUser:Button1Down(Vector2.new(500, 500), Camera.CFrame)
+                                        currentTool:Activate()
+                                    end
                                     break
                                 end
                             end
@@ -295,12 +299,12 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v36 (Fixed Click Attack)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v37 (Forced Attack Fix)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đấm quái)", function(state)
+createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đánh quái chuẩn)", function(state)
     getgenv().AutoFarm = state
 end)
 
@@ -308,13 +312,14 @@ createToggle("Combat", "⚔️ Fast Attack (Tấn công siêu tốc)", function(
     getgenv().FastAttack = state
     task.spawn(function()
         while getgenv().FastAttack do
-            task.wait(0.05)
+            task.wait(0.03)
             pcall(function()
                 sethiddenproperty(LocalPlayer, "SimulationRadius", math.huge)
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 if tool then 
+                    VirtualUser:CaptureController()
                     tool:Activate()
-                    VirtualUser:Button1Down(Vector2.new(500, 500), Workspace.CurrentCamera.CFrame)
+                    VirtualUser:Button1Down(Vector2.new(500, 500), Camera.CFrame)
                 end
             end)
         end
