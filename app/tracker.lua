@@ -1,390 +1,278 @@
--- ===================================================================
--- 🔥 YEAGER NEXUS HUB | STEAL AN EGG - ULTIMATE EDITION 🔥
--- ===================================================================
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local CoreGui = game:GetService("CoreGui")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
-local TeleportService = game:GetService("TeleportService")
-local RunService = game:GetService("RunService")
-
-print("[Yeager Hub] Đang khởi chạy hệ thống Ultimate cho Steal An Egg...")
-
-if CoreGui:FindFirstChild("YeagerUltimateStealEgg") then
-    CoreGui.YeagerUltimateStealEgg:Destroy()
+if not game:IsLoaded() then
+    game.Loaded:Wait()
 end
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YeagerUltimateStealEgg"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-    ScreenGui.Parent = CoreGui
-else
-    pcall(function() ScreenGui.Parent = CoreGui end)
-    if ScreenGui.Parent ~= CoreGui then
-        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    end
-end
-
--- Khung giao diện chính
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 580, 0, 380)
-MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(255, 140, 0)
-MainStroke.Thickness = 1.5
-MainStroke.Transparency = 0.3
-MainStroke.Parent = MainFrame
-
--- Top Bar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 42)
-TopBar.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = MainFrame
-
-local TopCorner = Instance.new("UICorner")
-TopCorner.CornerRadius = UDim.new(0, 12)
-TopCorner.Parent = TopBar
-
-local TitleText = Instance.new("TextLabel")
-TitleText.Size = UDim2.new(1, -50, 1, 0)
-TitleText.Position = UDim2.new(0, 15, 0, 0)
-TitleText.BackgroundTransparency = 1
-TitleText.TextColor3 = Color3.fromRGB(255, 160, 0)
-TitleText.TextSize = 13
-TitleText.Font = Enum.Font.GothamBold
-TitleText.TextXAlignment = Enum.TextXAlignment.Left
-TitleText.Text = "🥚 YEAGER HUB | STEAL AN EGG (ULTIMATE HUB)"
-TitleText.Parent = TopBar
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -36, 0, 6)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-CloseBtn.BackgroundTransparency = 0.2
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 12
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Text = "X"
-CloseBtn.Parent = TopBar
-
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(0, 8)
-CloseCorner.Parent = CloseBtn
-
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Sidebar Menu (Tabs)
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 150, 1, -42)
-Sidebar.Position = UDim2.new(0, 0, 0, 42)
-Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 26)
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = MainFrame
-
-local tabs = {}
-local function createTabContent(name)
-    local scrolling = Instance.new("ScrollingFrame")
-    scrolling.Name = name .. "Content"
-    scrolling.Size = UDim2.new(1, -162, 1, -54)
-    scrolling.Position = UDim2.new(0, 158, 0, 48)
-    scrolling.BackgroundTransparency = 1
-    scrolling.BorderSizePixel = 0
-    scrolling.CanvasSize = UDim2.new(0, 0, 1.8, 0)
-    scrolling.ScrollBarThickness = 4
-    scrolling.Visible = false
-    scrolling.Parent = MainFrame
-    
-    local UIList = Instance.new("UIListLayout")
-    UIList.SortOrder = Enum.SortOrder.LayoutOrder
-    UIList.Padding = UDim.new(0, 10)
-    UIList.Parent = scrolling
-    
-    tabs[name] = scrolling
-    return scrolling
-end
-
-createTabContent("Main")
-createTabContent("Visuals")
-createTabContent("ServerHop")
-
-tabs["Main"].Visible = true
-
-local function createTabButton(name, text, posY)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -16, 0, 36)
-    btn.Position = UDim2.new(0, 8, 0, posY)
-    btn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    btn.TextColor3 = Color3.fromRGB(180, 180, 200)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamMedium
-    btn.Text = text
-    btn.Parent = Sidebar
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    
-    btn.MouseButton1Click:Connect(function()
-        for _, tab in pairs(tabs) do tab.Visible = false end
-        for _, b in pairs(Sidebar:GetChildren()) do
-            if b:IsA("TextButton") then 
-                b.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-                b.TextColor3 = Color3.fromRGB(180, 180, 200) 
-            end
-        end
-        tabs[name].Visible = true
-        btn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    end)
-end
-
-createTabButton("Main", "🏠 Main Hub", 15)
-createTabButton("Visuals", "👁️ Visuals (ESP)", 58)
-createTabButton("ServerHop", "🌐 Server Hop", 101)
-
--- Hàm tạo Toggle tiêu chuẩn
-local function createToggle(tabName, titleText, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 42)
-    frame.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
-    frame.Parent = tabs[tabName]
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -70, 1, 0)
-    label.Position = UDim2.new(0, 12, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(220, 220, 240)
-    label.TextSize = 12
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = titleText
-    label.Parent = frame
-    
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 42, 0, 22)
-    toggleBtn.Position = UDim2.new(1, -52, 0.5, -11)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
-    toggleBtn.Text = ""
-    toggleBtn.Parent = frame
-    
-    local tCorner = Instance.new("UICorner")
-    tCorner.CornerRadius = UDim.new(0, 11)
-    tCorner.Parent = toggleBtn
-    
-    local circle = Instance.new("Frame")
-    circle.Size = UDim2.new(0, 16, 0, 16)
-    circle.Position = UDim2.new(0, 3, 0.5, -8)
-    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    circle.Parent = toggleBtn
-    
-    local cCorner = Instance.new("UICorner")
-    cCorner.CornerRadius = UDim.new(1, 0)
-    cCorner.Parent = circle
-    
-    local active = false
-    toggleBtn.MouseButton1Click:Connect(function()
-        active = not active
-        if active then
-            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(1, -19, 0.5, -8)}):Play()
-        else
-            TweenService:Create(toggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 75)}):Play()
-            TweenService:Create(circle, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
-        end
-        callback(active)
-    end)
-end
-
--- ===================================================================
--- CẤU HÌNH TÍNH NĂNG (CONFIG)
--- ===================================================================
-getgenv().Config = {
-    AutoSteal = false,
-    AutoHatch = false,
-    AutoPlace = false,
-    EggESP = false,
-    AutoServerHop = false
-}
-
--- Status Thông báo trên Main Tab
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(1, -10, 0, 40)
-StatusLabel.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-StatusLabel.TextSize = 11
-StatusLabel.Font = Enum.Font.GothamMedium
-StatusLabel.Text = "📊 Trạng thái: Sẵn sàng hoạt động"
-StatusLabel.Parent = tabs["Main"]
-local slCorner = Instance.new("UICorner") slCorner.CornerRadius = UDim.new(0, 8) slCorner.Parent = StatusLabel
-
--- ===================================================================
--- ĐĂNG KÝ CÁC TÍNH NĂNG
--- ===================================================================
-
--- 1. AUTO STEAL
-createToggle("Main", "🚀 Auto Steal (Tự động trộm trứng)", function(state)
-    getgenv().Config.AutoSteal = state
-end)
-
--- 2. AUTO HATCH
-createToggle("Main", "🥚 Auto Hatch (Tự động ấp trứng)", function(state)
-    getgenv().Config.AutoHatch = state
-end)
-
--- 3. AUTO PLACE
-createToggle("Main", "📍 Auto Place (Tự động đặt pet/vật phẩm)", function(state)
-    getgenv().Config.AutoPlace = state
-end)
-
--- 4. EGG ESP (Tab Visuals)
-createToggle("Visuals", "👁️ Egg ESP (Hiển thị vị trí trứng)", function(state)
-    getgenv().Config.EggESP = state
-end)
-
--- 5. SERVER HOP (Tab Server Hop)
-createToggle("ServerHop", "🌐 Auto Server Hop (Đổi server khi hết trứng)", function(state)
-    getgenv().Config.AutoServerHop = state
-end)
-
-local InstantHopBtn = Instance.new("TextButton")
-InstantHopBtn.Size = UDim2.new(1, -10, 0, 38)
-InstantHopBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-InstantHopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-InstantHopBtn.TextSize = 12
-InstantHopBtn.Font = Enum.Font.GothamBold
-InstantHopBtn.Text = "⚡ Đổi Server Ngay (Instant Hop)"
-InstantHopBtn.Parent = tabs["ServerHop"]
-local ihCorner = Instance.new("UICorner") ihCorner.CornerRadius = UDim.new(0, 8) ihCorner.Parent = InstantHopBtn
-
-InstantHopBtn.MouseButton1Click:Connect(function()
-    TeleportService:Teleport(game.PlaceId, LocalPlayer)
-end)
-
--- ===================================================================
--- LOGIC XỬ LÝ CHẠY NGẦM (LOOPS)
--- ===================================================================
-
--- Logic Auto Steal
-task.spawn(function()
-    while task.wait(0.2) do
-        if getgenv().Config.AutoSteal then
-            pcall(function()
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local rootPart = char.HumanoidRootPart
-                    local found = false
-                    
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if not getgenv().Config.AutoSteal then break end
-                        if obj:IsA("ProximityPrompt") then
-                            local nameLower = obj.Name:lower()
-                            local parentName = obj.Parent and obj.Parent.Name:lower() or ""
-                            
-                            if nameLower:match("egg") or parentName:match("egg") or obj.ActionText:lower():match("steal") then
-                                local targetPart = obj.Parent
-                                local partCFrame = nil
-                                if targetPart:IsA("BasePart") then
-                                    partCFrame = targetPart.CFrame
-                                elseif targetPart:IsA("Model") and targetPart.PrimaryPart then
-                                    partCFrame = targetPart.PrimaryPart.CFrame
-                                elseif targetPart:FindFirstChildWhichIsA("BasePart") then
-                                    partCFrame = targetPart:FindFirstChildWhichIsA("BasePart").CFrame
-                                end
-                                
-                                if partCFrame then
-                                    found = true
-                                    StatusLabel.Text = "🎯 Đang thực hiện Auto Steal trứng..."
-                                    rootPart.CFrame = partCFrame * CFrame.new(0, 2.5, 0)
-                                    task.wait(0.1)
-                                    fireproximityprompt(obj)
-                                    task.wait(0.2)
-                                    break
-                                end
-                            end
-                        end
-                    end
-                    
-                    if not found and getgenv().Config.AutoServerHop then
-                        StatusLabel.Text = "🌐 Hết trứng, đang đổi server..."
-                        task.wait(1)
-                        TeleportService:Teleport(game.PlaceId, LocalPlayer)
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- Logic Auto Hatch & Auto Place (Mô phỏng kích hoạt theo chu kỳ)
-task.spawn(function()
-    while task.wait(1) do
-        if getgenv().Config.AutoHatch then
-            pcall(function()
-                -- Gửi sự kiện hoặc kích hoạt remote ấp trứng nếu game hỗ trợ
-                -- Ví dụ: game:GetService("ReplicatedStorage").Remotes.HatchEgg:InvokeServer()
-            end)
-        end
-        if getgenv().Config.AutoPlace then
-            pcall(function()
-                -- Logic tự động đặt vật phẩm/pet
-            end)
-        end
-    end
-end)
-
--- Logic Egg ESP (Vẽ ESP lên trứng)
-local espFolder = Instance.new("Folder")
-espFolder.Name = "YeagerEggESP"
-espFolder.Parent = CoreGui
-
-RunService.RenderStepped:Connect(function()
-    if not getgenv().Config.EggESP then
-        espFolder:ClearAllChildren()
+if identifyexecutor then
+    local execName = tostring(identifyexecutor()):lower()
+    if execName:find("solara") or execName:find("xeno") then
+        game:GetService("Players").LocalPlayer:Kick("EXECUTOR NOT SUPPORTED[PLEASE DON'T GET MAD THIS IS SOLARA/XENO'S FAULT]")
         return
     end
-    
-    espFolder:ClearAllChildren()
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name:lower():match("egg") or (obj.Parent and obj.Parent.Name:lower():match("egg"))) then
-            local billboard = Instance.new("BillboardGui")
-            billboard.Size = UDim2.new(0, 100, 0, 40)
-            billboard.AlwaysOnTop = true
-            billboard.Adornee = obj
-            
-            local textLabel = Instance.new("TextLabel")
-            textLabel.Size = UDim2.new(1, 0, 1, 0)
-            textLabel.BackgroundTransparency = 1
-            textLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-            textLabel.TextScaled = true
-            textLabel.Font = Enum.Font.GothamBold
-            textLabel.Text = "🥚 TRỨNG"
-            textLabel.Parent = billboard
-            
-            billboard.Parent = espFolder
-        end
-    end
-end)
+end
 
-print("[Yeager Hub] Ultimate Script Loaded Successfully!")
+local BASE = 'https://raw.githubusercontent.com/joustingmatch/Ouroboros/main/games/'
+
+local games = {
+    [9190691]    = 'anime-squadron.lua',
+    [896806231]  = 'axe-rng.lua',
+    [759293173]  = 'reign-piece.lua',
+    [973045631]  = 'anime-card-farm.lua',
+    [104489519]  = 'defend-ur-base-with-anime.lua',
+    [446405201]  = 'merge-a-nuke.lua',
+    [5028964]    = 'saber-simulator.lua',
+    [561990553]  = 'survive-zombie-arena.lua',
+    [35906875]   = 'anime-story-2.lua',
+    [33910482]   = 'anime-world-fighters.lua',
+    [895955624]  = 'anime-rng.lua',
+    [33910482]   = 'anime-astral-simulator.lua',
+    [1006239440] = 'anime-battle-rng.lua',
+    [572660282]  = 'anime-ultraon-simulator.lua',
+    [2568838]    = 'tree-rng.lua',
+    [15504927]   = 'launch-a-wheel.lua',
+    [4651630]    = 'lineage-piece.lua',
+    [2823500]    = 'untitled-melee-rng.lua',
+    [889770537]  = 'farm-rng.lua',
+    [432538536]  = 'grow-a-garden-2.lua',
+    [10353739]   = 'loot-rng.lua',
+    [654102831]  = 'bomb-fishing.lua',
+    [32001182]   = 'merge-vs-mobs.lua',
+    [719390069]  = 'lucky-block-rush.lua',
+    [374857141]  = 'pickaxe-tycoon.lua',
+    [15904375]   = 'rng-heroes.lua',
+    [1105128955] = 'click-simulator.lua',
+    [51129361]   = 'scale-slimy-fish.lua',
+    [711432426]  = 'world-cup-manager.lua',
+    [665060893]  = 'evomon.lua',
+    [861213399]  = 'roll-to-defend.lua',
+    [33724194]   = 'anime-rng-defense.lua',
+    [831907229]  = 'spin-a-car.lua',
+    [36093006]   = 'animesouls.lua',
+    [742438713]  = 'rollanime.lua',
+    [168012640]  = 'becomeabillionaire.lua',
+    [34492682]   = 'chickenfarm.lua',
+    [444132252]  = 'hotsauce.lua',
+    [431165110]  = 'snowconestand.lua',
+    [250961762]  = 'beehive.lua',
+    [287664347]  = 'hackabussiness.lua',
+    [744386991]  = 'buildaslime.lua',
+    [11603322]   = 'buildapetfarm.lua',
+    [1000628384] = 'makeadrillfarm.lua',
+    [330064258]  = 'growitrng.lua',
+    [625498370]  = 'animeshitseer.lua',
+    [33896179]   = 'missilesvscities.lua',
+    [380415714]  = 'throwacoin.lua',
+    [177870152]  = 'buildakeyboard.lua',
+    [35666413]   = 'beeremasters.lua',
+    [532484073]  = 'mydinofarm.lua',
+    [9640154]    = 'storagehunters.lua',
+    [650517328]  = 'rollananime.lua',
+    [8309807]    = 'scratchyloot.lua',
+    [33290695]   = 'bethefinalboss.lu',
+    [540612760]  = 'buildabaseandsteal',
+    [657759819]  = 'rollanimetofight.lua',
+    [35929511]   = 'animeexpeditions.lua',
+    [383912360]  = 'zombieturretfarm.lua',
+    [73354146]   = 'beafishbait.lua',
+    [878417107]  = 'mergeablackhole.lua',
+    [13511151]   = 'finalswarm.lua',
+    [645675002]  = 'pullaluckyfish.lua',
+    [295349008]  = 'lakesipping.lua',
+    [830072163]  = 'greedygrowers.lua',
+    [999381953]  = 'dinohunters.lua',
+    [865578721]  = 'getfattobreaktape.lua',
+    [286242120]  = 'lootup.lua',
+    [490911723]  = 'swingerspickaxe.lua',
+    [1056817463] = 'bidforanime.lua',
+    [645675002]  = 'pullaluckyfish.lua',
+    [10627495]   = 'somethingsexywillhappen.lua',
+    [4843918]    = 'farmafish.lua',
+    [1057255034] = 'cutagem.lua',
+    [15753989]   = 'catchaslop.lua',
+    [140965829]  = 'buildapetfactory.lua',
+    [35861864]   = 'roll2survive',
+    [5003223]    = 'slapacumslut',
+    [14685986]   = 'capybarasvsplants.lua',
+    [492855504]  = 'crawfishing.lua',
+    [522637919]  = 'miniwar.lua',
+    [816911736]  = 'buildabutterflygarden.lua',
+    [574941029]  = 'bo3zombies.lua',
+    [999893763]  = 'gardencleaner.lua',
+    [515420491]  = 'mutantplants.lua',
+    [12208023]   = 'dontstealbobo.lua',
+    [460048752]  = 'gardenhorizons.lua',
+    [36008925]   = 'buildazoo.lua',
+    [35532215]   = 'farmanisland.lua',
+    [8444917]    = 'mergeanimedefender.lua',
+    [12860813]   = 'mergeatanker.lua',
+    [389736281]  = 'saveanimals.lua',
+    [35328876]   = 'wtfisthisgamebrolmfao.lua',
+    [645519191]  = 'mergeamob.lua',
+    [622013004]  = 'cleankeycap.lua',
+    [248260079]  = 'moofarm.lua',
+    [618896802]  = 'lumberfarm.lua',
+    [697469702]  = 'backflipkeyboard.lua',
+    [1008902725] = 'speedmonkeyescape.lua',
+    [596089868]  = 'mineamountain.lua',
+    [630881948]  = 'coinflip.lua',
+    [679586291]  = 'dignclean.lua',
+    [32634643]   = 'rngvsfruit.lua',
+    [113072261]  = 'cutgrass.lua',
+    [1081589393] = 'fatperclick.lua',
+    [118455659]  = 'magicloot.lua',
+    [659716909]  = 'mergeminiarmy.lua',
+    [462340796]  = 'muscleevolution.lua',
+    [760075281]  = 'followersperclick.lua',
+    [326703534]  = 'kawaiianimerng.lua',
+    [613112271] = 'rollagnome.lua',
+    [611030254]  = 'loadthetruck.lua',
+    [99675598]   = 'poweryourcity.lua',
+    [531274056]  = 'rolltosurvive.lua',
+    [3434923]    = 'doublejumpbike.lua',
+    [7015605]    = 'simonsays.lua',
+    [124804121]  = 'kickballtospace.lua',
+    [1010818854] = 'catchbillionducks.lua',
+    [943930401]  = 'oilempire.lua',
+    [609942260]  = 'stopbugs.lua',
+    [631662618]  = 'cardealer.lua',
+    [1095870602] = 'drillforanime.lua',
+    [180466034]  = 'growchickenfighter.lua',
+    [825735094]  = 'stealanegg.lua',
+    [10142514]   = 'gardentower.lua',
+    [939397893]  = 'breaktape.lua',
+    [918026845]  = 'sellores.lua',
+    [2919794]    = 'lowball.lua',
+    [699041832]  = 'hackperclick.lua',
+    [1005157018] = 'spinafem.lua',
+    [999320972]  = 'muscleprisonbreak.lua',
+    [15211300]   = 'flowershop.lua',
+    [878922422]  = 'coachafighter.lua',
+    [949197661]  = 'automateares.lua',
+    [200275059]  = 'buildorefarm.lua',
+    [943932821]  = 'poopanorefarm.lua',
+    [854390513]  = 'jumptostealslime.lua',
+    [103466300]  = 'shrinkperstep.lua',
+    [519201492]  = 'heightperjump.lua',
+    [35850353]   = 'mergeplantsvsmobs.lua',
+    [124937935]  = 'carsvstape.lua',
+    [127740815]  = 'plushietd.lua',
+    [671178856]  = 'powerperclick.lua',
+    [912232112]  = 'standevolution.lua',
+    [515962489]  = 'mergeswordzombies.lua',
+    [390180214]  = 'reheads.lua',
+    [35932459]   = 'wingsforbrainrot.lua',
+    [388952470]  = 'dancinganimals.lua',
+    [111213976]  = 'poweracity.lua',
+    [997943525]  = 'simplecowboysfarmer.lua',
+    [786473200]  = 'breakdoors.lua',
+    [559846885]  = 'ironsoulsdungeon.lua',
+    [286016413] = 'broketorich.lua',
+    [860201727] = 'speedevolve.lua',
+    [854390513] = 'jumptostealsoccer.lua',
+    [554718083] = 'rollanarmy.lua',
+    [1097982922] = 'kittenkeyboardescape.lua',
+    [852706731] = 'rollasuperhero.lua',
+    [1030691482] = 'beanstalksquishy.lua',
+    [650517328] = 'rollanimedice.lua',
+    [308858726] = 'buildagunarmy.lua',
+    [459291258] = 'cleanleaves.lua',
+    [232837303] = 'screamperclick.lua',
+    [312122244] = 'SpinjitsuEscape.lua',
+    [4127076] = 'catchntame.lua',
+    [183340924] = 'drainocean.lua',
+    [750112327] = 'jumpycrunchy.lua',
+    [496909722] = 'dungeonquest.lua',
+    [9436002850] = 'petforest.lua',
+    [988942002] = 'auraperclick.lua',
+    [546215338] = 'animewarrng.lua',
+    [33893781] = 'dreamkeyboard.lua',
+    [36086574] = 'starcatchers.lua',
+    [33579757] = 'minerrng.lua',
+    [522804844] = 'climbwaterslide.lua',
+    [490177241] = 'rollforchiikawa.lua',
+    [355220525] = 'rollaspirit.lua',
+    [35699110] = 'animelootup.lua',
+    [1018567917] = 'snipebrainrots.lua',
+    [204295404] = 'bingo.lua',
+    [16890920] = 'mansiontycoon.lua',
+    [688446729] = 'airporttycoon.lua',
+    [16481354] = 'slimecardcollection.lua',
+    [4656477] = 'caseparadise.lua',
+    [706743014] = 'swordempire.lua',
+    [247318225] = 'animecoin.lua',
+    [592785028] = 'fishforjunk.lua',
+    [824329932] = 'rolladice.lua',
+    [15340279] = 'mytoll.lua',
+    [997705665] = 'billionairezoo.lua',
+    [1061245028] = 'cliffmansion.lua',
+    [35754558] = 'ageevolution.lua',
+    [476752300] = 'bemonkey.lua',
+    [15707680] = 'fishperclick.lua',
+    [35888785] = 'prospecting.lua',
+    [35620138] = 'fishanimrng.lua',
+    [7371243] = 'tropicalresort.lua',
+    [896205907] = 'presskeycap.lua',
+    [554364117] = 'heatperclick.lua',
+    [365646753] = 'parkourpandemic.lua',
+    [724439129] = 'dmgper.lua',
+    [952510004] = 'defendringfarm.lua',
+    [35659866] = 'pangame.lua',
+    [470393728] = 'tollgame.lua',
+    [7916244] = 'snatchaseed.lua',
+    [987733062] = 'animejackpot.lua',
+    [912801413] = 'climbslop.lua',
+    [1008362692] = 'spiderman.lua',
+    [1110056661] = 'unboxasmr.lua',
+    [5096106] = 'surviveanimearena.lua',
+    [684188376] = 'rebirthfrenzy.lua',
+    [177982364] = 'hoteltycoon.lua',
+    [5019929] = 'penthouse.lua',
+    [976904614] = 'animegirlpaint.lua',
+    [33017480] = 'animedice.lua',
+    [697359830] = 'reeled.lua',
+    [32032540] = 'heavyweightfishing.lua',
+    [605521299] = 'drillblocks.lua',
+    [5055349] = 'cookandsell.lua',
+    [652521234] = 'meltice.lua',
+    [16060315] = 'footballbrainrot.lua',
+    [885992339] = 'makesoccerplayers.lua',
+    [33642706] = 'rollanarmyy.lua',
+    [716389229] = 'rollforavataritems.lua',
+    [815212136] = 'greedybrainrots.lua',
+    [548528838] = 'auraforbrainrots.lua',
+    [712896401] = 'buildanai.lua',
+    [918672217] = 'fruitsamurai.lua',
+    [612510500] = 'holefishing.lua',
+    [7473952601] = 'saveyourcat.lua',
+    [680513873] = 'superheroevolution.lua',
+    [641497291] = 'skinnyperstep.lua',
+    [949888772] = 'myseafood.lua',
+    [419937938] = 'bidforsoccercards.lua',
+    [193560319] = 'fillwatertank.lua',
+    [1092080264] = 'carvewood.lua',
+    [1044583942] = 'cleantheworld.lua',
+    [1040399903] = 'surviveverity.luau',
+    [659075385] = 'CollectTheAlphabet.luau',
+    [620792404] = 'mytimberpets.lua',
+    [621477904] = 'buildagolem.luau',
+    [11317569] = 'blowupluckyblock.luau',
+    [1083668503] = 'defendyouranimals.luau',
+    [888837368] = 'mergeaspinner.luau',
+    [339029776] = 'whereseasonspass.luau',
+}   
+
+local file = games[game.CreatorId]
+if file then
+    pcall(function()
+        local httpRequest = request or http_request or (syn and syn.request) or (http and http.request)
+        if not httpRequest then return end
+
+        httpRequest({
+            Url = "https://ouroboros-track.ouroboros-hub.workers.dev/hit",
+            Method = "POST"
+        })
+    end)
+
+    task.wait(math.random())
+    loadstring(game:HttpGet(BASE .. file))()
+end
