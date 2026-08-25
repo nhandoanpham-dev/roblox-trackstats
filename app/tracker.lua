@@ -1,8 +1,24 @@
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 580, 0, 380)
+MainFrame.Position = UDim2.new(0.5, -290, 0.5, -190)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(255, 140, 0)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.3
+MainStroke.Parent = MainFrame
 if not game:IsLoaded() then
     game.Loaded:Wait()
 end
-
-
 if identifyexecutor then
     local execName = tostring(identifyexecutor()):lower()
     if execName:find("solara") or execName:find("xeno") then
