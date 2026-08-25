@@ -1,5 +1,5 @@
 -- ===================================================================
--- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v34) 🔥
+-- 🔥 YEAGER NEXUS HUB | BLOX FRUITS ULTRA ULTIMATE EDITION (v35 FIXED) 🔥
 -- ===================================================================
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -238,12 +238,11 @@ local function createToggle(tabName, titleText, callback)
 end
 
 -- ===================================================================
--- HỆ THỐNG AUTO FARM & ĐÁNH QUÁI THỰC TẾ (NÂNG CẤP TẤN CÔNG)
+-- FIX LỖI AUTO FARM & TẤN CÔNG ỔN ĐỊNH (FIX TOOL UN-EQUIP LOOP)
 -- ===================================================================
 getgenv().AutoFarm = false
 getgenv().FastAttack = false
 
--- Tiến trình Auto Farm (Dịch chuyển + Tự cầm vũ khí + Tấn công liên tục)
 task.spawn(function()
     while task.wait(0.1) do
         if getgenv().AutoFarm then
@@ -253,29 +252,26 @@ task.spawn(function()
                     local rootPart = char.HumanoidRootPart
                     local humanoid = char.Humanoid
                     
-                    -- 1. Tự động cầm vũ khí từ trong balo (Backpack) lên tay
-                    local activeTool = char:FindFirstChildOfClass("Tool")
-                    if not activeTool then
+                    -- 1. Kiểm tra vũ khí trên tay ổn định (Tránh lỗi rút ra cất vào liên tục)
+                    local currentTool = char:FindFirstChildOfClass("Tool")
+                    if not currentTool then
                         for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
                             if item:IsA("Tool") then
                                 humanoid:EquipTool(item)
+                                task.wait(0.1)
                                 break
                             end
                         end
                     else
-                        -- 2. Kích hoạt đòn đánh liên tục của vũ khí
-                        activeTool:Activate()
+                        -- Kích hoạt đòn đánh liên tục khi đã cầm vũ khí
+                        currentTool:Activate()
                     end
                     
-                    -- Chống afk / click chuột giả lập đánh quái
-                    VirtualUser:Button1Down(Vector2.new(0,0), Workspace.CurrentCamera.CFrame)
-                    
-                    -- 3. Tìm quái gần nhất và bay tới đầu quái để đánh
+                    -- 2. Tìm quái gần nhất và dịch chuyển tới đầu quái để chém
                     if Workspace:FindFirstChild("Enemies") then
                         for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
                             if enemy:FindFirstChild("HumanoidRootPart") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                                 if getgenv().AutoFarm then
-                                    -- Bay bám sát phía trên hoặc trước mặt quái để chém trúng
                                     rootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 10, 3)
                                     break
                                 end
@@ -296,12 +292,12 @@ HomeInfo.TextColor3 = Color3.fromRGB(200, 200, 220)
 HomeInfo.TextSize = 12
 HomeInfo.Font = Enum.Font.Gotham
 HomeInfo.TextWrapped = true
-HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v34 (Active Attack)"
+HomeInfo.Text = "👤 Tài khoản: " .. LocalPlayer.Name .. "\n🌐 Trạng thái Web: Đang kết nối Realtime...\n🔥 Hub: Yeager Nexus Ultra v35 (Fixed Attack)"
 HomeInfo.Parent = tabs["Home"]
 local hCorner = Instance.new("UICorner") hCorner.CornerRadius = UDim.new(0, 8) hCorner.Parent = HomeInfo
 
 -- Tab Farm Toggles
-createToggle("Farm", "⚡ Auto Farm & Attack (Tự động cày & đánh quái)", function(state)
+createToggle("Farm", "⚡ Auto Farm & Attack (Cày cấp & Đánh quái ổn định)", function(state)
     getgenv().AutoFarm = state
 end)
 
@@ -380,4 +376,4 @@ if Req then
     end)
 end
 
-print("Yeager Nexus HUD Loaded Successfully!")
+print("Yeager Nexus Hub Loaded Successfully!")
